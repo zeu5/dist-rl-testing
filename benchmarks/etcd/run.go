@@ -36,7 +36,7 @@ func PreparePureCoverageComparison(flags *common.Flags) *core.ParallelComparison
 		StaySameUpto:          flags.StaySameUpto,
 		WithCrashes:           flags.WithCrashes,
 		MaxCrashedNodes:       flags.MaxCrashActions,
-		BoundaryPredicate:     TermBound(3),
+		BoundaryPredicate:     TermBound(9),
 	}).GetConstructor(raftEnvConstructor)
 
 	cmp.AddAnalysis("Coverage", analysis.NewCovertAnalyzerConstructor(painter), analysis.NewCoverageComparatorConstructor(flags.SavePath))

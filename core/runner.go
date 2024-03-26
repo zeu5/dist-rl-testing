@@ -49,7 +49,7 @@ func (e *Experiment) run(ctx *experimentRunContext) *ExperimentResult {
 
 	consecutiveErrors := 0
 	consecutiveTimeouts := 0
-	totalTimeSteps := ctx.Episodes * ctx.Horizon
+	totalTimeSteps := (ctx.Episodes + 1) * ctx.Horizon
 EpisodeLoop:
 	for episode := 0; result.TotalTimeSteps <= totalTimeSteps; episode++ {
 		select {
@@ -112,9 +112,10 @@ EpisodeLoop:
 		select {
 		case <-eCtx.Done():
 			if eCtx.IsError() {
-				errorred = true
 				if errors.Is(eCtx.err, ErrOutOfBounds) {
 					result.BoundReachedEpisodes++
+				} else {
+					errorred = true
 				}
 			}
 		case <-timeoutCtx.Done():

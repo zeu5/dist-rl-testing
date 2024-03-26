@@ -18,7 +18,7 @@ type Trace struct {
 func NewTrace() *Trace {
 	return &Trace{
 		steps: make([]*Step, 0),
-		mtx:   &sync.Mutex{},
+		mtx:   new(sync.Mutex),
 	}
 }
 

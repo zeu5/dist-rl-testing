@@ -169,6 +169,7 @@ func (s *PartitionState) copy() *PartitionState {
 		repeatCount:    s.repeatCount,
 		Partition:      make([][]Color, 0),
 
+		numNodes:          s.numNodes,
 		canDeliverRequest: s.canDeliverRequest,
 		withCrashes:       s.withCrashes,
 		remainingCrashes:  s.remainingCrashes,
@@ -424,9 +425,6 @@ func (s *PartitionState) Actions() []Action {
 	if s.canDeliverRequest && len(s.Requests) > 0 {
 		actions = append(actions, &RequestAction{})
 	}
-	if len(actions) == 0 {
-		panic("No actions")
-	}
 	return actions
 }
 
@@ -482,9 +480,36 @@ func (e *partitionEnvironment) Reset() (State, error) {
 	if err != nil {
 		return nil, err
 	}
-	newState := e.curState.copyWith(pState)
-	newState.paint(e.config.Painter)
-	e.curState = newState
+	newState := &PartitionState{
+		NodeStates:     make(map[int]NState),
+		messages:       pState.Messages(),
+		Requests:       pState.Requests(),
+		activeNodes:    make(map[int]bool),
+		NodeColors:     make(map[int]Color),
+		nodePartitions: make(map[int]int),
+		repeatCount:    0,
+		Partition:      make([][]Color, 0),
+
+		numNodes:          e.config.NumNodes,
+		canDeliverRequest: pState.CanDeliverRequest(),
+		withCrashes:       e.config.WithCrashes,
+		remainingCrashes:  e.config.MaxCrashActions,
+		maxCrashedNodes:   e.config.MaxCrashedNodes,
+	}
+	colors := make([]Color, e.config.NumNodes)
+	for i := 0; i < e.config.NumNodes; i++ {
+		ns := pState.NodeState(i)
+		color := e.config.Painter(ns)
+		newState.activeNodes[i] = true
+		newState.nodePartitions[i] = 0
+		newState.NodeStates[i] = ns
+		newState.NodeColors[i] = color
+		colors[i] = color
+	}
+	sort.Sort(colorSlice(colors))
+	newState.Partition = append(newState.Partition, colors)
+
+	e.curState = newState.copy()
 	return newState, nil
 }
 
@@ -601,16 +626,23 @@ func (e *partitionEnvironment) handleChangePartition(act *ChangePartitionAction,
 		}
 		colorNodes[cHash] = append(colorNodes[cHash], i)
 	}
+	newPartition := make([][]Color, 0)
 	for i, part := range act.Partition {
+		partition := make([]Color, 0)
 		for _, c := range part {
 			cHash := c.Hash()
 			nextNode := colorNodes[cHash][0]
 			colorNodes[cHash] = colorNodes[cHash][1:]
 			newPartitionMap[nextNode] = i
+			partition = append(partition, c)
 		}
+		sort.Sort(colorSlice(partition))
+		newPartition = append(newPartition, partition)
 	}
+	sort.Sort(partitionSlice(newPartition))
 	newState := e.curState.copy()
 	newState.nodePartitions = newPartitionMap
+	newState.Partition = newPartition
 	e.curState = newState
 	newState, err := e.doTicks(ctx)
 	if err != nil {
@@ -779,6 +811,7 @@ func defaultPartitionState(config *PEnvironmentConfig) *PartitionState {
 		out.activeNodes[i] = true
 		out.nodePartitions[i] = 0
 	}
+	out.Partition = append(out.Partition, make([]Color, 0))
 	return out
 }
 

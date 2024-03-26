@@ -34,6 +34,7 @@ func NewEpisodeContext(ctx context.Context) *EpisodeContext {
 	return &EpisodeContext{
 		Context: ctx,
 		doneCh:  make(chan struct{}),
+		Trace:   NewTrace(),
 	}
 }
 
