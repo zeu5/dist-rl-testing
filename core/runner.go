@@ -69,14 +69,13 @@ EpisodeLoop:
 		eCtx.Episode = episode
 		eCtx.StartTimeStep = result.TotalTimeSteps
 
-		e.Policy.ResetEpisode(eCtx)
-
 		go func(eCtx *EpisodeContext) {
 			state, err := e.Environment.Reset()
 			if err != nil {
 				eCtx.Error(err)
 				return
 			}
+			e.Policy.ResetEpisode(eCtx)
 			for step := 0; step < ctx.Horizon; step++ {
 				select {
 				case <-eCtx.Context.Done():
@@ -272,7 +271,7 @@ func (w *parallelWorker) runWork(ctx context.Context, work *parallelWork) *paral
 	}
 
 	for name, aC := range work.comp.Analyzers {
-		eCtx.analyzers[name] = aC.NewAnalyzer(w.id)
+		eCtx.analyzers[name] = aC.NewAnalyzer(work.experiment.Name, w.id)
 	}
 
 	// Construct the experiment

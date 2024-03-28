@@ -17,7 +17,8 @@ type Analyzer interface {
 }
 
 type AnalyzerConstructor interface {
-	NewAnalyzer(int) Analyzer
+	// new analyzer based on experiment name and run
+	NewAnalyzer(string, int) Analyzer
 }
 
 type Comparator interface {

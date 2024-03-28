@@ -156,7 +156,7 @@ type PredicateAnalyzerConstructor struct {
 
 var _ core.AnalyzerConstructor = &PredicateAnalyzerConstructor{}
 
-func (p *PredicateAnalyzerConstructor) NewAnalyzer(_ int) core.Analyzer {
+func (p *PredicateAnalyzerConstructor) NewAnalyzer(_ string, _ int) core.Analyzer {
 	return NewPredicateAnalyzer(p.Painter, p.Predicates...)
 }
 

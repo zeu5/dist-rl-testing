@@ -76,6 +76,10 @@ type ComposedColor struct {
 	s map[string]interface{}
 }
 
+func (s *ComposedColor) Map() map[string]interface{} {
+	return s.s
+}
+
 func (s *ComposedColor) Hash() string {
 	return util.JsonHash(s.s)
 }
@@ -180,7 +184,7 @@ func (s *PartitionState) copy() *PartitionState {
 		remainingCrashes:  s.remainingCrashes,
 		maxCrashedNodes:   s.maxCrashedNodes,
 	}
-	for i := 0; i < s.numNodes; i++ {
+	for i := 1; i <= s.numNodes; i++ {
 		new.NodeStates[i] = s.NodeStates[i]
 	}
 	new.messages = append(new.messages, s.messages...)
@@ -221,7 +225,7 @@ func (s *PartitionState) copyWith(pState PState) *PartitionState {
 		remainingCrashes:  s.remainingCrashes,
 		maxCrashedNodes:   s.maxCrashedNodes,
 	}
-	for i := 0; i < s.numNodes; i++ {
+	for i := 1; i <= s.numNodes; i++ {
 		new.NodeStates[i] = pState.NodeState(i)
 	}
 	new.messages = append(new.messages, pState.Messages()...)
@@ -399,7 +403,9 @@ func (s *PartitionState) Actions() []Action {
 					inActivePart = append(inActivePart, c)
 				}
 			}
-			partition = append(partition, inActivePart)
+			if len(inActivePart) > 0 {
+				partition = append(partition, inActivePart)
+			}
 			actions = append(actions, &ChangePartitionAction{Partition: partition})
 		}
 	}
@@ -422,9 +428,9 @@ func (s *PartitionState) Actions() []Action {
 					actions = append(actions, &StopAction{Color: c.Hash()})
 				}
 			}
-			if len(inActiveColors) > 0 {
-				actions = append(actions, &StartAction{})
-			}
+		}
+		if crashedNodes > 0 {
+			actions = append(actions, &StartAction{})
 		}
 	}
 	if s.canDeliverRequest && len(s.Requests) > 0 {
@@ -510,14 +516,14 @@ func (e *partitionEnvironment) Reset() (State, error) {
 		maxCrashedNodes:   e.config.MaxCrashedNodes,
 	}
 	colors := make([]Color, e.config.NumNodes)
-	for i := 0; i < e.config.NumNodes; i++ {
+	for i := 1; i <= e.config.NumNodes; i++ {
 		ns := pState.NodeState(i)
 		color := e.config.Painter(ns)
 		newState.activeNodes[i] = true
 		newState.nodePartitions[i] = 0
 		newState.NodeStates[i] = ns
 		newState.NodeColors[i] = color
-		colors[i] = color
+		colors[i-1] = color
 	}
 	sort.Sort(colorSlice(colors))
 	newState.Partition = append(newState.Partition, colors)
@@ -668,7 +674,7 @@ func (e *partitionEnvironment) handleChangePartition(act *ChangePartitionAction,
 func (e *partitionEnvironment) handleStartAction(_ *StartAction, ctx *StepContext) (State, error) {
 	newState := e.curState.copy()
 	inactive := make([]int, 0)
-	for i := 0; i < e.config.NumNodes; i++ {
+	for i := 1; i <= e.config.NumNodes; i++ {
 		if _, active := newState.activeNodes[i]; !active {
 			inactive = append(inactive, i)
 		}
@@ -737,7 +743,7 @@ func (e *partitionEnvironment) handleStopAction(act *StopAction, ctx *StepContex
 		if haveOtherInActive {
 			// There is already a partition with inactive nodes which we can use
 			inActivePartition := -1
-			for i := 0; i < e.config.NumNodes; i++ {
+			for i := 1; i <= e.config.NumNodes; i++ {
 				if _, active := e.curState.activeNodes[i]; !active {
 					inActivePartition = e.curState.nodePartitions[i]
 					break
@@ -820,7 +826,7 @@ func defaultPartitionState(config *PEnvironmentConfig) *PartitionState {
 		remainingCrashes:  config.MaxCrashActions,
 		maxCrashedNodes:   config.MaxCrashedNodes,
 	}
-	for i := 0; i < config.NumNodes; i++ {
+	for i := 1; i <= config.NumNodes; i++ {
 		out.activeNodes[i] = true
 		out.nodePartitions[i] = 0
 	}

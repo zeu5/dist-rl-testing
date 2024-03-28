@@ -153,10 +153,29 @@ func (p *RaftPartitionEnv) deliverMessage(m core.Message) core.PState {
 			panic("error in reading entries in the log")
 		}
 
-		// add snapshot
-		snapshot, err := storage.Snapshot()
-		if err == nil {
-			newState.Snapshots[id] = snapshot.Metadata
+		if p.config.SnapshotFrequency != 0 && newState.ticks > 0 && newState.ticks%p.config.SnapshotFrequency == 0 {
+			voters := make([]uint64, p.config.NumNodes)
+			for i := 0; i < p.config.NumNodes; i++ {
+				voters[i] = uint64(i + 1)
+			}
+			cfg := &pb.ConfState{Voters: voters}
+			if status.Applied > 2+uint64(p.config.NumNodes) {
+				data := make([]byte, 0)
+				for _, e := range ents {
+					if e.Type == pb.EntryNormal && e.Index < status.Applied && len(e.Data) > 0 {
+						data = append(data, e.Data...)
+					}
+				}
+				storage.CreateSnapshot(status.Applied-1, cfg, data)
+
+				// Not sure if log should be compacted
+				// p.storages[id].Compact(status.Applied - 1)
+			}
+			// add snapshot
+			snapshot, err := storage.Snapshot()
+			if err == nil {
+				newState.Snapshots[id] = snapshot.Metadata
+			}
 		}
 
 	}
@@ -236,13 +255,13 @@ func (p *RaftPartitionEnv) Tick(epCtx *core.StepContext) (core.PState, error) {
 				// Not sure if log should be compacted
 				// p.storages[id].Compact(status.Applied - 1)
 			}
+			// add snapshot
+			snapshot, err := storage.Snapshot()
+			if err == nil {
+				newState.Snapshots[id] = snapshot.Metadata
+			}
 		}
 
-		// add snapshot
-		snapshot, err := storage.Snapshot()
-		if err == nil {
-			newState.Snapshots[id] = snapshot.Metadata
-		}
 	}
 	newState.MessageMap = copyMessageMap(p.messages)
 	newState.PendingRequests = copyMessagesList(p.curState.PendingRequests)

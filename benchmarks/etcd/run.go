@@ -79,10 +79,10 @@ func getHierarchySet(hSet string) []hierarchySet {
 	if !strings.Contains(strings.ToLower(hSet), "set") {
 		hierarchy := GetHierarchy(hSet)
 		out := make([]hierarchySet, 0)
-		for i := 0; i < len(hierarchy); i++ {
+		for i := len(hierarchy) - 1; i >= 0; i-- {
 			out = append(out, hierarchySet{
 				Name:       fmt.Sprintf("%s[%d]", hSet, i+1),
-				Predicates: hierarchy[0 : i+1],
+				Predicates: hierarchy[i:],
 			})
 		}
 		return out
@@ -93,7 +93,6 @@ func getHierarchySet(hSet string) []hierarchySet {
 		hierarchies = []string{
 			"OneInTerm3", "AllInTerm2", "TermDiff2",
 			"MinCommit2", "LeaderInTerm2", "OneLeaderOneCandidate",
-			"AnyInTerm6",
 		}
 	default:
 		return []hierarchySet{}
@@ -144,7 +143,8 @@ func PrepareHierarchyComparison(flags *common.Flags, hSet string) (*core.Paralle
 		MaxMessagesPerTick:    100,
 		StaySameUpto:          flags.StaySameUpto,
 		WithCrashes:           flags.WithCrashes,
-		MaxCrashedNodes:       flags.MaxCrashActions,
+		MaxCrashedNodes:       flags.MaxCrashedNodes,
+		MaxCrashActions:       flags.MaxCrashActions,
 		BoundaryPredicate:     TermBound(9),
 	}).GetConstructor(raftEnvConstructor)
 

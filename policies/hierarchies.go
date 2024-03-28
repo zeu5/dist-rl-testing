@@ -178,7 +178,7 @@ func (h *HierarchyPolicy) UpdateEpisode(_ *core.EpisodeContext) {
 			continue
 		}
 		segmentLength := len(h.traceSegments[i])
-		for j := 0; j < segmentLength; j++ {
+		for j := segmentLength - 1; j > 0; j-- {
 			step := h.traceSegments[i][j]
 
 			t := h.visits[i].Get(step.state, step.action, 0) + 1

@@ -15,12 +15,10 @@ func GetHierarchy(name string) []policies.Predicate {
 		return termDiff2()
 	case "MinCommit2":
 		return minCommit2()
-	case "LeaderInTerm5":
-		return leaderInTerm5()
+	case "LeaderInTerm4":
+		return leaderInTerm4()
 	case "OneLeaderOneCandidate":
 		return oneLeaderOneCandidate()
-	case "AnyInTerm5":
-		return anyInTerm5()
 	}
 	return []policies.Predicate{}
 }
@@ -28,16 +26,8 @@ func GetHierarchy(name string) []policies.Predicate {
 func oneInTerm3() []policies.Predicate {
 	return []policies.Predicate{
 		// {Name: "AnyInTerm2", Check: AllInTerm(2)},
-		{Name: "AllInTerm2", Check: AllInTerm(2)},
+		// {Name: "AllInTerm2", Check: AllInTerm(2)},
 		{Name: "AnyInTerm3", Check: AnyInTerm(3)},
-	}
-}
-
-func anyInTerm5() []policies.Predicate {
-	return []policies.Predicate{
-		// {Name: "AllInTerm3", Check: AllInTerm(3)},
-		// {Name: "AllInTerm4", Check: AllInTerm(5)},
-		{Name: "AnyInTerm5", Check: AnyInTerm(6)},
 	}
 }
 
@@ -59,9 +49,10 @@ func minCommit2() []policies.Predicate {
 	}
 }
 
-func leaderInTerm5() []policies.Predicate {
+func leaderInTerm4() []policies.Predicate {
 	return []policies.Predicate{
-		{Name: "LeaderInTerm5", Check: LeaderElectedPredicateStateWithTerm(5)},
+		// {Name: "AllInTerm3", Check: AllInTerm(3)},
+		{Name: "LeaderInTerm4", Check: LeaderElectedPredicateStateWithTerm(4)},
 	}
 }
 

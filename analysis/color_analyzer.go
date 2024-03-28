@@ -80,7 +80,7 @@ func NewColorAnalyzerConstructor(painter core.Painter) *ColorAnalyzerConstructor
 
 var _ core.AnalyzerConstructor = &ColorAnalyzerConstructor{}
 
-func (c *ColorAnalyzerConstructor) NewAnalyzer(_ int) core.Analyzer {
+func (c *ColorAnalyzerConstructor) NewAnalyzer(_ string, _ int) core.Analyzer {
 	return NewColorAnalyzer(c.painter)
 }
 
