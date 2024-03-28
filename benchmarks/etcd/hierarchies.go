@@ -1,9 +1,51 @@
 package etcd
 
 import (
+	"fmt"
+	"strings"
+
 	"github.com/zeu5/dist-rl-testing/policies"
 	"go.etcd.io/raft/v3"
 )
+
+type hierarchySet struct {
+	Name       string
+	Predicates []policies.Predicate
+}
+
+// returns a set of hierarchies for the given name.
+// If the set name is a single hierarchy then it returns that specific hierarchy
+func getHierarchySet(hSet string) []hierarchySet {
+	if !strings.Contains(strings.ToLower(hSet), "set") {
+		hierarchy := GetHierarchy(hSet)
+		out := make([]hierarchySet, 0)
+		for i := len(hierarchy) - 1; i >= 0; i-- {
+			out = append(out, hierarchySet{
+				Name:       fmt.Sprintf("%s[%d]", hSet, i+1),
+				Predicates: hierarchy[i:],
+			})
+		}
+		return out
+	}
+	var hierarchies []string
+	switch hSet {
+	case "set1":
+		hierarchies = []string{
+			"OneInTerm3", "AllInTerm2", "TermDiff2",
+			"MinCommit2", "LeaderInTerm4", "OneLeaderOneCandidate",
+		}
+	default:
+		return []hierarchySet{}
+	}
+	out := make([]hierarchySet, len(hierarchies))
+	for i, h := range hierarchies {
+		out[i] = hierarchySet{
+			Name:       h,
+			Predicates: GetHierarchy(h),
+		}
+	}
+	return out
+}
 
 func GetHierarchy(name string) []policies.Predicate {
 	switch name {

@@ -107,20 +107,3 @@ func copyNodeStateMap(m map[uint64]raft.Status) map[uint64]raft.Status {
 	}
 	return c
 }
-
-// copy the snapshots hashmap
-func copySnapshotsMap(snapshots map[uint64]pb.SnapshotMetadata) map[uint64]pb.SnapshotMetadata {
-	c := make(map[uint64]pb.SnapshotMetadata)
-
-	for id, sn := range snapshots {
-		newSnap := pb.SnapshotMetadata{
-			ConfState: sn.ConfState,
-			Index:     sn.Index,
-			Term:      sn.Term,
-		}
-
-		c[id] = newSnap
-	}
-
-	return c
-}

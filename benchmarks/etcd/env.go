@@ -15,11 +15,10 @@ import (
 
 // config of the raft environment
 type RaftEnvironmentConfig struct {
-	NumNodes          int
-	ElectionTick      int
-	HeartbeatTick     int
-	Requests          int
-	SnapshotFrequency int
+	NumNodes      int
+	ElectionTick  int
+	HeartbeatTick int
+	Requests      int
 }
 
 // Wrapper around raft nodes, storage and in transit messages to allow for implementing a partition interface
@@ -83,6 +82,8 @@ func (r *RaftPartitionEnv) makeNodes() {
 			MaxInflightMsgs:           256,
 			MaxUncommittedEntriesSize: 1 << 30,
 			Logger:                    &raft.DefaultLogger{Logger: log.New(io.Discard, "", 0)},
+			CheckQuorum:               true,
+			PreVote:                   true,
 		})
 		r.nodes[nodeID].Bootstrap(peers)
 	}
@@ -90,7 +91,6 @@ func (r *RaftPartitionEnv) makeNodes() {
 		NodeStates:      make(map[uint64]raft.Status),
 		MessageMap:      copyMessageMap(r.messages),
 		Logs:            make(map[uint64][]pb.Entry),
-		Snapshots:       make(map[uint64]pb.SnapshotMetadata),
 		PendingRequests: make([]pb.Message, r.config.Requests),
 		ticks:           0,
 	}
@@ -153,31 +153,6 @@ func (p *RaftPartitionEnv) deliverMessage(m core.Message) core.PState {
 			panic("error in reading entries in the log")
 		}
 
-		if p.config.SnapshotFrequency != 0 && newState.ticks > 0 && newState.ticks%p.config.SnapshotFrequency == 0 {
-			voters := make([]uint64, p.config.NumNodes)
-			for i := 0; i < p.config.NumNodes; i++ {
-				voters[i] = uint64(i + 1)
-			}
-			cfg := &pb.ConfState{Voters: voters}
-			if status.Applied > 2+uint64(p.config.NumNodes) {
-				data := make([]byte, 0)
-				for _, e := range ents {
-					if e.Type == pb.EntryNormal && e.Index < status.Applied && len(e.Data) > 0 {
-						data = append(data, e.Data...)
-					}
-				}
-				storage.CreateSnapshot(status.Applied-1, cfg, data)
-
-				// Not sure if log should be compacted
-				// p.storages[id].Compact(status.Applied - 1)
-			}
-			// add snapshot
-			snapshot, err := storage.Snapshot()
-			if err == nil {
-				newState.Snapshots[id] = snapshot.Metadata
-			}
-		}
-
 	}
 	newState.MessageMap = copyMessageMap(p.messages)
 	p.curState = newState
@@ -235,31 +210,6 @@ func (p *RaftPartitionEnv) Tick(epCtx *core.StepContext) (core.PState, error) {
 			newState.Logs[id] = copyLogList(ents)
 		} else {
 			panic("error in reading entries in the log")
-		}
-
-		if p.config.SnapshotFrequency != 0 && newState.ticks > 0 && newState.ticks%p.config.SnapshotFrequency == 0 {
-			voters := make([]uint64, p.config.NumNodes)
-			for i := 0; i < p.config.NumNodes; i++ {
-				voters[i] = uint64(i + 1)
-			}
-			cfg := &pb.ConfState{Voters: voters}
-			if status.Applied > 2+uint64(p.config.NumNodes) {
-				data := make([]byte, 0)
-				for _, e := range ents {
-					if e.Type == pb.EntryNormal && e.Index < status.Applied && len(e.Data) > 0 {
-						data = append(data, e.Data...)
-					}
-				}
-				storage.CreateSnapshot(status.Applied-1, cfg, data)
-
-				// Not sure if log should be compacted
-				// p.storages[id].Compact(status.Applied - 1)
-			}
-			// add snapshot
-			snapshot, err := storage.Snapshot()
-			if err == nil {
-				newState.Snapshots[id] = snapshot.Metadata
-			}
 		}
 
 	}

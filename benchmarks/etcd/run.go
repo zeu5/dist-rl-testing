@@ -2,8 +2,6 @@ package etcd
 
 import (
 	"errors"
-	"fmt"
-	"strings"
 
 	"github.com/zeu5/dist-rl-testing/analysis"
 	"github.com/zeu5/dist-rl-testing/benchmarks/common"
@@ -25,11 +23,10 @@ func PreparePureCoverageComparison(flags *common.Flags) *core.ParallelComparison
 	}
 
 	raftEnvConstructor := NewPartitionEnvironmentConstructor(RaftEnvironmentConfig{
-		NumNodes:          flags.NumNodes,
-		ElectionTick:      16,
-		HeartbeatTick:     4,
-		Requests:          flags.Requests,
-		SnapshotFrequency: 0,
+		NumNodes:      flags.NumNodes,
+		ElectionTick:  16,
+		HeartbeatTick: 4,
+		Requests:      flags.Requests,
 	})
 	painter := core.NewComposedPainter(colors...).Painter()
 	partitionEnvConstructor := (&core.PEnvironmentConfig{
@@ -68,45 +65,6 @@ func PreparePureCoverageComparison(flags *common.Flags) *core.ParallelComparison
 	return cmp
 }
 
-type hierarchySet struct {
-	Name       string
-	Predicates []policies.Predicate
-}
-
-// returns a set of hierarchies for the given name.
-// If the set name is a single hierarchy then it returns that specific hierarchy
-func getHierarchySet(hSet string) []hierarchySet {
-	if !strings.Contains(strings.ToLower(hSet), "set") {
-		hierarchy := GetHierarchy(hSet)
-		out := make([]hierarchySet, 0)
-		for i := len(hierarchy) - 1; i >= 0; i-- {
-			out = append(out, hierarchySet{
-				Name:       fmt.Sprintf("%s[%d]", hSet, i+1),
-				Predicates: hierarchy[i:],
-			})
-		}
-		return out
-	}
-	var hierarchies []string
-	switch hSet {
-	case "set1":
-		hierarchies = []string{
-			"OneInTerm3", "AllInTerm2", "TermDiff2",
-			"MinCommit2", "LeaderInTerm2", "OneLeaderOneCandidate",
-		}
-	default:
-		return []hierarchySet{}
-	}
-	out := make([]hierarchySet, len(hierarchies))
-	for i, h := range hierarchies {
-		out[i] = hierarchySet{
-			Name:       h,
-			Predicates: GetHierarchy(h),
-		}
-	}
-	return out
-}
-
 // Creates a comparison with the predicate hierarchy policy for the set of specified hierarchies
 func PrepareHierarchyComparison(flags *common.Flags, hSet string) (*core.ParallelComparison, error) {
 
@@ -129,11 +87,10 @@ func PrepareHierarchyComparison(flags *common.Flags, hSet string) (*core.Paralle
 	}
 
 	raftEnvConstructor := NewPartitionEnvironmentConstructor(RaftEnvironmentConfig{
-		NumNodes:          flags.NumNodes,
-		ElectionTick:      16,
-		HeartbeatTick:     4,
-		Requests:          flags.Requests,
-		SnapshotFrequency: 0,
+		NumNodes:      flags.NumNodes,
+		ElectionTick:  16,
+		HeartbeatTick: 4,
+		Requests:      flags.Requests,
 	})
 	painter := core.NewComposedPainter(colors...).Painter()
 	partitionEnvConstructor := (&core.PEnvironmentConfig{

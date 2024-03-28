@@ -1,6 +1,8 @@
 package etcd
 
 import (
+	"bytes"
+
 	"github.com/zeu5/dist-rl-testing/core"
 	"github.com/zeu5/dist-rl-testing/util"
 	"go.etcd.io/raft/v3"
@@ -23,6 +25,28 @@ func (r RaftMessageWrapper) Hash() string {
 	return util.JsonHash(r.Message)
 }
 
+func copySnapshot(snap *pb.Snapshot) *pb.Snapshot {
+	out := &pb.Snapshot{
+		Data: bytes.Clone(snap.Data),
+		Metadata: pb.SnapshotMetadata{
+			ConfState: pb.ConfState{
+				Voters:         make([]uint64, len(snap.Metadata.ConfState.Voters)),
+				Learners:       make([]uint64, len(snap.Metadata.ConfState.Learners)),
+				VotersOutgoing: make([]uint64, len(snap.Metadata.ConfState.VotersOutgoing)),
+				LearnersNext:   make([]uint64, len(snap.Metadata.ConfState.LearnersNext)),
+				AutoLeave:      snap.Metadata.ConfState.AutoLeave,
+			},
+			Index: snap.Metadata.Index,
+			Term:  snap.Metadata.Term,
+		},
+	}
+	copy(out.Metadata.ConfState.Voters, snap.Metadata.ConfState.Voters)
+	copy(out.Metadata.ConfState.Learners, snap.Metadata.ConfState.Learners)
+	copy(out.Metadata.ConfState.VotersOutgoing, snap.Metadata.ConfState.VotersOutgoing)
+	copy(out.Metadata.ConfState.LearnersNext, snap.Metadata.ConfState.LearnersNext)
+	return out
+}
+
 func (r RaftMessageWrapper) Copy() RaftMessageWrapper {
 	newMessage := pb.Message{
 		Type:       r.Message.Type,
@@ -33,10 +57,10 @@ func (r RaftMessageWrapper) Copy() RaftMessageWrapper {
 		Index:      r.Message.Index,
 		Commit:     r.Message.Commit,
 		Vote:       r.Message.Vote,
-		Snapshot:   r.Message.Snapshot,
+		Snapshot:   copySnapshot(r.Message.Snapshot),
 		Reject:     r.Message.Reject,
 		RejectHint: r.Message.RejectHint,
-		Context:    r.Message.Context,
+		Context:    bytes.Clone(r.Message.Context),
 		Responses:  r.Message.Responses,
 	}
 	if len(r.Message.Entries) != 0 {
@@ -64,7 +88,6 @@ type RaftState struct {
 	// The messages in transit
 	MessageMap map[string]pb.Message
 	Logs       map[uint64][]pb.Entry
-	Snapshots  map[uint64]pb.SnapshotMetadata
 	// Test harness and pending requests
 	PendingRequests []pb.Message
 
@@ -76,7 +99,6 @@ func (r *RaftState) Copy() *RaftState {
 		NodeStates:      copyNodeStateMap(r.NodeStates),
 		PendingRequests: copyMessagesList(r.PendingRequests),
 		Logs:            make(map[uint64][]pb.Entry),
-		Snapshots:       copySnapshotsMap(r.Snapshots),
 		MessageMap:      copyMessageMap(r.MessageMap),
 		ticks:           r.ticks,
 	}
@@ -101,9 +123,8 @@ type RaftNodeState struct {
 func (r *RaftState) NodeState(node int) core.NState {
 	nID := uint64(node)
 	return RaftNodeState{
-		State:    r.NodeStates[nID],
-		Log:      r.Logs[nID],
-		Snapshot: r.Snapshots[nID],
+		State: r.NodeStates[nID],
+		Log:   r.Logs[nID],
 	}
 }
 
