@@ -72,7 +72,7 @@ type ColorAnalyzerConstructor struct {
 	painter core.Painter
 }
 
-func NewCovertAnalyzerConstructor(painter core.Painter) *ColorAnalyzerConstructor {
+func NewColorAnalyzerConstructor(painter core.Painter) *ColorAnalyzerConstructor {
 	return &ColorAnalyzerConstructor{
 		painter: painter,
 	}
@@ -115,7 +115,7 @@ func (c *ColorComparatorConstructor) NewComparator(run int) core.Comparator {
 	return NewColorComparator(path.Join(c.savePath, strconv.Itoa(run)))
 }
 
-func NewCoverageComparatorConstructor(savePath string) *ColorComparatorConstructor {
+func NewColorComparatorConstructor(savePath string) *ColorComparatorConstructor {
 	return &ColorComparatorConstructor{
 		savePath: savePath,
 	}

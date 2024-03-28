@@ -136,6 +136,13 @@ func (p *PredicateAnalyzerConstructor) NewAnalyzer(_ int) core.Analyzer {
 	return NewPredicateAnalyzer(p.Painter, p.Predicates...)
 }
 
+func NewPredicateAnalyzerConstructor(painter core.Painter, predicates []policies.Predicate) *PredicateAnalyzerConstructor {
+	return &PredicateAnalyzerConstructor{
+		Painter:    painter,
+		Predicates: predicates,
+	}
+}
+
 type PredicateComparator struct {
 	savePath string
 }
@@ -166,4 +173,10 @@ var _ core.ComparatorConstructor = &PredicateComparatorConstructor{}
 
 func (p *PredicateComparatorConstructor) NewComparator(run int) core.Comparator {
 	return NewPredicateComparator(path.Join(p.savePath, strconv.Itoa(run)))
+}
+
+func NewPredicateComparatorConstructor(hierarchyName string, savePath string) *PredicateComparatorConstructor {
+	return &PredicateComparatorConstructor{
+		savePath: savePath,
+	}
 }

@@ -8,9 +8,11 @@ import (
 	"github.com/zeu5/dist-rl-testing/util"
 )
 
+type PredicateFunc func(core.State) bool
+
 type Predicate struct {
 	Name  string
-	Check func(core.State) bool
+	Check PredicateFunc
 }
 
 type hierarchyStep struct {

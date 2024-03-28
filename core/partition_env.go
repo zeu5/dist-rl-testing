@@ -107,7 +107,9 @@ func (c *ComposedPainter) Painter() func(n NState) Color {
 	}
 }
 
+// A constructor to create new PEnvironments when needed for parallelism
 type PEnvironmentConstructor interface {
+	// Create a new PEnvironment
 	NewPEnvironment(int) PEnvironment
 }
 
@@ -139,6 +141,8 @@ type partitionEnvironment struct {
 	curState *PartitionState
 }
 
+// State of the Partition environment
+// Encapsulates the state of the nodes and presents only an abstraction to RL
 type PartitionState struct {
 	NodeStates     map[int]NState
 	messages       []Message
@@ -158,6 +162,7 @@ type PartitionState struct {
 
 var _ State = &PartitionState{}
 
+// Creates a new PartitionState instance and copies the contents
 func (s *PartitionState) copy() *PartitionState {
 	new := &PartitionState{
 		NodeStates:     make(map[int]NState),
@@ -428,6 +433,7 @@ func (s *PartitionState) Actions() []Action {
 	return actions
 }
 
+// Start any inactive node
 type StartAction struct {
 }
 
@@ -435,7 +441,9 @@ func (s *StartAction) Hash() string {
 	return "start"
 }
 
+// Stop a node
 type StopAction struct {
+	// Color of the node to be stopped
 	Color string
 }
 
@@ -443,7 +451,9 @@ func (s *StopAction) Hash() string {
 	return "stop-" + s.Color
 }
 
+// Send a request to the underlying environment
 type RequestAction struct {
+	// The request sent to the underlying environment
 	Request Request
 }
 
@@ -451,6 +461,7 @@ func (r *RequestAction) Hash() string {
 	return "request"
 }
 
+// Action to not change the partition configuration
 type StaySamePartitionAction struct {
 }
 
@@ -458,7 +469,9 @@ func (s *StaySamePartitionAction) Hash() string {
 	return "stay-same-partition"
 }
 
+// Change the partition configuration
 type ChangePartitionAction struct {
+	// The new partition configuration to change to
 	Partition [][]Color
 }
 

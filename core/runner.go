@@ -4,10 +4,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"io"
 	"sync"
+	"time"
 
-	"github.com/gosuri/uilive"
+	"github.com/zeu5/dist-rl-testing/util"
 )
 
 var (
@@ -20,7 +20,7 @@ type experimentRunContext struct {
 	ctx       context.Context
 	analyzers map[string]Analyzer
 
-	writer io.Writer
+	writer *util.ParallelOutput
 
 	*RunConfig
 }
@@ -59,11 +59,10 @@ EpisodeLoop:
 		default:
 		}
 
-		fmt.Fprintf(
-			ctx.writer,
-			"Experiment: %s, Run %d, Timesteps: %d/%d, Episode %d, Error: %d, Timedout: %d, OurOfBounds: %d\n",
+		ctx.writer.Set(fmt.Sprintf(
+			"Experiment: %s, Run %d, Timesteps: %d/%d, Episode %d, Error: %d, Timedout: %d, OurOfBounds: %d",
 			e.Name, ctx.run, result.TotalTimeSteps, totalTimeSteps, episode, result.ErrorEpisodes, result.TimeoutEpisodes, result.BoundReachedEpisodes,
-		)
+		))
 		timeoutCtx, timeoutCancel := context.WithTimeout(ctx.ctx, ctx.EpisodeTimeout)
 		eCtx := NewEpisodeContext(timeoutCtx)
 		eCtx.Run = ctx.run
@@ -153,7 +152,7 @@ EpisodeLoop:
 		}
 	}
 	if result.Error != nil {
-		fmt.Fprintf(ctx.writer, "Experiment: %s, Run %d, Error: %v\n", e.Name, ctx.run, result.Error)
+		ctx.writer.TrySet(fmt.Sprintf("Experiment: %s, Run %d, Error: %v", e.Name, ctx.run, result.Error))
 	}
 
 	for name, a := range ctx.analyzers {
@@ -232,7 +231,7 @@ type parallelWork struct {
 	experiment *ParallelExperiment
 	comp       *ParallelComparison
 	runNumber  int
-	writer     io.Writer
+	writer     *util.ParallelOutput
 	rConfig    *RunConfig
 	wg         *sync.WaitGroup
 }
@@ -301,9 +300,9 @@ func (c *ParallelComparison) Run(ctx context.Context, runs int, rConfig *RunConf
 		}
 		// Create workers and channels
 		wg := new(sync.WaitGroup)
-		writer := uilive.New()
-		writer.Start()
-		fmt.Fprintf(writer, "Run %d\n", run)
+		writer := util.NewTerminalPrinter(1 * time.Second)
+		writer.Start(ctx)
+		writer.Write(fmt.Sprintf("Run %d\n", run))
 
 		workCh := make(chan *parallelWork, parallelism)
 		resultsCh := make(chan *parallelResult, parallelism)
@@ -344,7 +343,7 @@ func (c *ParallelComparison) Run(ctx context.Context, runs int, rConfig *RunConf
 				runNumber:  run,
 				rConfig:    rConfig,
 				wg:         wg,
-				writer:     writer.Newline(),
+				writer:     writer.NewOutput(),
 			}:
 			}
 		}

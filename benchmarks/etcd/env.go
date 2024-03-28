@@ -22,6 +22,7 @@ type RaftEnvironmentConfig struct {
 	SnapshotFrequency int
 }
 
+// Wrapper around raft nodes, storage and in transit messages to allow for implementing a partition interface
 type RaftPartitionEnv struct {
 	config   RaftEnvironmentConfig
 	nodes    map[uint64]*raft.RawNode
@@ -33,6 +34,7 @@ type RaftPartitionEnv struct {
 
 var _ core.PEnvironment = &RaftPartitionEnv{}
 
+// Implements core.PEnvironment interface
 func NewPartitionEnvironment(config RaftEnvironmentConfig) *RaftPartitionEnv {
 	return &RaftPartitionEnv{
 		config:   config,
@@ -43,18 +45,22 @@ func NewPartitionEnvironment(config RaftEnvironmentConfig) *RaftPartitionEnv {
 	}
 }
 
+// Constructs a new environment when required with the stored config.
+// Used in parallel experiments. Implements core.PEnvironmentConstructor
 type RaftPartitionEnvConstructor struct {
 	config RaftEnvironmentConfig
 }
 
 var _ core.PEnvironmentConstructor = &RaftPartitionEnvConstructor{}
 
+// Creates a new partition environment constructor
 func NewPartitionEnvironmentConstructor(config RaftEnvironmentConfig) *RaftPartitionEnvConstructor {
 	return &RaftPartitionEnvConstructor{
 		config: config,
 	}
 }
 
+// Creates a new environment
 func (r *RaftPartitionEnvConstructor) NewPEnvironment(_ int) core.PEnvironment {
 	return NewPartitionEnvironment(r.config)
 }
