@@ -92,7 +92,10 @@ func TermDiff(diff int) policies.PredicateFunc {
 			}
 		}
 
-		return maxTerm >= minTerm && maxTerm-minTerm > uint64(diff)
+		if maxTerm >= minTerm && maxTerm-minTerm > uint64(diff) {
+			return true
+		}
+		return false
 	})
 }
 
@@ -107,7 +110,7 @@ func LeaderElectedPredicateState() policies.PredicateFunc {
 		for _, state := range pS.NodeStates { // for each node state
 			repState := state.(RaftNodeState)
 			curState := repState.State // cast into raft.Status
-			if curState.BasicStatus.SoftState.RaftState.String() == "StateLeader" {
+			if curState.RaftState.String() == "StateLeader" {
 				return true
 			}
 		}
@@ -127,7 +130,7 @@ func LeaderElectedPredicateStateWithTerm(term uint64) policies.PredicateFunc {
 		for _, state := range pS.NodeStates { // for each node state
 			repState := state.(RaftNodeState)
 			curState := repState.State // cast into raft.Status
-			if curState.BasicStatus.SoftState.RaftState.String() == "StateLeader" && curState.Term == term {
+			if curState.RaftState.String() == "StateLeader" && curState.Term == term {
 				return true
 			}
 		}

@@ -8,21 +8,53 @@ import (
 	"github.com/zeu5/dist-rl-testing/util"
 )
 
+var (
+	Init Predicate = Predicate{
+		Name:  "Init",
+		Check: func(s core.State) bool { return true },
+	}
+)
+
+// Predicate used in the predicate hierarchy
 type PredicateFunc func(core.State) bool
 
+// And connective
+func (p PredicateFunc) And(other PredicateFunc) PredicateFunc {
+	return func(s core.State) bool {
+		return p(s) && other(s)
+	}
+}
+
+// Or connective
+func (p PredicateFunc) Or(other PredicateFunc) PredicateFunc {
+	return func(s core.State) bool {
+		return p(s) || other(s)
+	}
+}
+
+// Not connective
+func (p PredicateFunc) Not() PredicateFunc {
+	return func(s core.State) bool {
+		return !p(s)
+	}
+}
+
+// Predicate struct to encapsulate the name along with the function
 type Predicate struct {
 	Name  string
 	Check PredicateFunc
 }
 
+// step to store in the segment
 type hierarchyStep struct {
-	state      core.State
-	action     core.Action
+	state      string
+	action     string
 	reward     bool
 	outOfSpace bool
-	nextState  core.State
+	nextState  string
 }
 
+// Policy to bias towards states specified hierarchy predicates
 type HierarchyPolicy struct {
 	predicates []Predicate
 
@@ -32,7 +64,6 @@ type HierarchyPolicy struct {
 	alpha    float64
 	discount float64
 	epsilon  float64
-	oneTime  bool
 	rand     *rand.Rand
 
 	curPredicate  int
@@ -42,8 +73,9 @@ type HierarchyPolicy struct {
 
 var _ core.Policy = &HierarchyPolicy{}
 
-func NewHierarchyPolicy(alpha, discount, epsilon float64, oneTime bool, predicates ...Predicate) *HierarchyPolicy {
-	return &HierarchyPolicy{
+func NewHierarchyPolicy(alpha, discount, epsilon float64, predicates ...Predicate) *HierarchyPolicy {
+	predicates = append([]Predicate{Init}, predicates...)
+	out := &HierarchyPolicy{
 		predicates: predicates,
 
 		qTables: make(map[int]*QTable),
@@ -53,12 +85,29 @@ func NewHierarchyPolicy(alpha, discount, epsilon float64, oneTime bool, predicat
 		discount: discount,
 		epsilon:  epsilon,
 		rand:     rand.New(rand.NewSource(time.Now().UnixNano())),
+
+		curPredicate:  0,
+		traceSegments: make(map[int][]*hierarchyStep),
+		targetReached: false,
 	}
+	for i := 0; i < len(predicates); i++ {
+		out.qTables[i] = NewQTable()
+		out.visits[i] = NewQTable()
+	}
+	return out
 }
 
 func (h *HierarchyPolicy) Reset() {
 	h.qTables = make(map[int]*QTable)
 	h.visits = make(map[int]*QTable)
+
+	for i := 0; i < len(h.predicates); i++ {
+		h.qTables[i] = NewQTable()
+		h.visits[i] = NewQTable()
+	}
+	h.curPredicate = 0
+	h.traceSegments = make(map[int][]*hierarchyStep)
+	h.targetReached = false
 }
 
 func (h *HierarchyPolicy) ResetEpisode(_ *core.EpisodeContext) {
@@ -86,7 +135,7 @@ func (h *HierarchyPolicy) UpdateStep(_ *core.StepContext, state core.State, acti
 			reward = true
 		}
 
-		if h.oneTime && nextPredicate == len(h.predicates)-1 {
+		if nextPredicate == len(h.predicates)-1 {
 			h.targetReached = true
 		}
 		h.curPredicate = nextPredicate
@@ -95,11 +144,11 @@ func (h *HierarchyPolicy) UpdateStep(_ *core.StepContext, state core.State, acti
 		h.traceSegments[curPredicate] = make([]*hierarchyStep, 0)
 	}
 	h.traceSegments[curPredicate] = append(h.traceSegments[curPredicate], &hierarchyStep{
-		state:      state,
-		action:     action,
+		state:      state.Hash(),
+		action:     action.Hash(),
 		reward:     reward,
 		outOfSpace: ourOfSpace,
-		nextState:  nextState,
+		nextState:  nextState.Hash(),
 	})
 }
 
@@ -131,16 +180,13 @@ func (h *HierarchyPolicy) UpdateEpisode(_ *core.EpisodeContext) {
 		segmentLength := len(h.traceSegments[i])
 		for j := 0; j < segmentLength; j++ {
 			step := h.traceSegments[i][j]
-			stateHash := step.state.Hash()
-			actionHash := step.action.Hash()
-			nextStateHash := step.nextState.Hash()
 
-			t := h.visits[i].Get(stateHash, actionHash, 0) + 1
-			h.visits[i].Set(stateHash, actionHash, t)
-			q := h.qTables[i].Get(stateHash, actionHash, 0)
-			_, nextMaxVal := h.qTables[i].Max(nextStateHash, 0)
+			t := h.visits[i].Get(step.state, step.action, 0) + 1
+			h.visits[i].Set(step.state, step.action, t)
+			q := h.qTables[i].Get(step.state, step.action, 0)
+			_, nextMaxVal := h.qTables[i].Max(step.nextState, 0)
 			if step.outOfSpace || j == segmentLength-1 {
-				_, nextMaxVal = h.qTables[i].Max(nextStateHash, 0)
+				_, nextMaxVal = h.qTables[i].Max(step.nextState, 0)
 			}
 
 			reward := 1 / float64(t)
@@ -149,7 +195,7 @@ func (h *HierarchyPolicy) UpdateEpisode(_ *core.EpisodeContext) {
 			}
 
 			q = (1-h.alpha)*q + h.alpha*util.MaxFloat(reward, h.discount*nextMaxVal)
-			h.qTables[i].Set(stateHash, actionHash, q)
+			h.qTables[i].Set(step.state, step.action, q)
 		}
 	}
 }
@@ -158,22 +204,20 @@ type HierarchyPolicyConstructor struct {
 	Alpha      float64
 	Discount   float64
 	Epsilon    float64
-	OneTime    bool
 	Predicates []Predicate
 }
 
 var _ core.PolicyConstructor = &HierarchyPolicyConstructor{}
 
-func NewHierarchyPolicyConstructor(alpha, discount, epsilon float64, oneTime bool, predicates ...Predicate) *HierarchyPolicyConstructor {
+func NewHierarchyPolicyConstructor(alpha, discount, epsilon float64, predicates ...Predicate) *HierarchyPolicyConstructor {
 	return &HierarchyPolicyConstructor{
 		Alpha:      alpha,
 		Discount:   discount,
 		Epsilon:    epsilon,
-		OneTime:    oneTime,
 		Predicates: predicates,
 	}
 }
 
 func (h *HierarchyPolicyConstructor) NewPolicy() core.Policy {
-	return NewHierarchyPolicy(h.Alpha, h.Discount, h.Epsilon, h.OneTime, h.Predicates...)
+	return NewHierarchyPolicy(h.Alpha, h.Discount, h.Epsilon, h.Predicates...)
 }

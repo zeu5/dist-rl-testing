@@ -121,12 +121,7 @@ func (p *RaftPartitionEnv) deliverMessage(m core.Message) core.PState {
 	}
 	delete(p.messages, msgK)
 
-	newState := &RaftState{
-		NodeStates:      make(map[uint64]raft.Status),
-		PendingRequests: copyMessagesList(p.curState.PendingRequests),
-		Logs:            make(map[uint64][]pb.Entry),
-		Snapshots:       make(map[uint64]pb.SnapshotMetadata),
-	}
+	newState := p.curState.Copy()
 	for id, node := range p.nodes {
 		if node.HasReady() {
 			ready := node.Ready()
@@ -189,13 +184,7 @@ func (p *RaftPartitionEnv) Tick(epCtx *core.StepContext) (core.PState, error) {
 	for _, node := range p.nodes {
 		node.Tick()
 	}
-	newState := &RaftState{
-		NodeStates: make(map[uint64]raft.Status),
-		Logs:       make(map[uint64][]pb.Entry), // guess this should be added also here?
-		Snapshots:  make(map[uint64]pb.SnapshotMetadata),
-		ticks:      p.curState.ticks + 1,
-	}
-
+	newState := p.curState.Copy()
 	for id, node := range p.nodes {
 		if node.HasReady() {
 			ready := node.Ready()

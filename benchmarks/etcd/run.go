@@ -2,6 +2,7 @@ package etcd
 
 import (
 	"errors"
+	"fmt"
 	"strings"
 
 	"github.com/zeu5/dist-rl-testing/analysis"
@@ -25,8 +26,8 @@ func PreparePureCoverageComparison(flags *common.Flags) *core.ParallelComparison
 
 	raftEnvConstructor := NewPartitionEnvironmentConstructor(RaftEnvironmentConfig{
 		NumNodes:          flags.NumNodes,
-		ElectionTick:      10,
-		HeartbeatTick:     2,
+		ElectionTick:      16,
+		HeartbeatTick:     4,
 		Requests:          flags.Requests,
 		SnapshotFrequency: 0,
 	})
@@ -72,25 +73,42 @@ type hierarchySet struct {
 	Predicates []policies.Predicate
 }
 
+// returns a set of hierarchies for the given name.
+// If the set name is a single hierarchy then it returns that specific hierarchy
 func getHierarchySet(hSet string) []hierarchySet {
 	if !strings.Contains(strings.ToLower(hSet), "set") {
-		return []hierarchySet{
-			{Name: hSet, Predicates: GetHierarchy(hSet)},
+		hierarchy := GetHierarchy(hSet)
+		out := make([]hierarchySet, 0)
+		for i := 0; i < len(hierarchy); i++ {
+			out = append(out, hierarchySet{
+				Name:       fmt.Sprintf("%s[%d]", hSet, i+1),
+				Predicates: hierarchy[0 : i+1],
+			})
 		}
+		return out
 	}
+	var hierarchies []string
 	switch hSet {
 	case "set1":
-		return []hierarchySet{
-			{Name: "OneInTerm3", Predicates: GetHierarchy("OneInTerm3")},
-			{Name: "AllInTerm2", Predicates: GetHierarchy("AllInTerm2")},
-			{Name: "TermDiff2", Predicates: GetHierarchy("TermDiff2")},
-			{Name: "MinCommit2", Predicates: GetHierarchy("MinCommit2")},
+		hierarchies = []string{
+			"OneInTerm3", "AllInTerm2", "TermDiff2",
+			"MinCommit2", "LeaderInTerm2", "OneLeaderOneCandidate",
+			"AnyInTerm6",
 		}
 	default:
 		return []hierarchySet{}
 	}
+	out := make([]hierarchySet, len(hierarchies))
+	for i, h := range hierarchies {
+		out[i] = hierarchySet{
+			Name:       h,
+			Predicates: GetHierarchy(h),
+		}
+	}
+	return out
 }
 
+// Creates a comparison with the predicate hierarchy policy for the set of specified hierarchies
 func PrepareHierarchyComparison(flags *common.Flags, hSet string) (*core.ParallelComparison, error) {
 
 	hierarchies := getHierarchySet(hSet)
@@ -113,8 +131,8 @@ func PrepareHierarchyComparison(flags *common.Flags, hSet string) (*core.Paralle
 
 	raftEnvConstructor := NewPartitionEnvironmentConstructor(RaftEnvironmentConfig{
 		NumNodes:          flags.NumNodes,
-		ElectionTick:      10,
-		HeartbeatTick:     2,
+		ElectionTick:      16,
+		HeartbeatTick:     4,
 		Requests:          flags.Requests,
 		SnapshotFrequency: 0,
 	})
@@ -140,7 +158,7 @@ func PrepareHierarchyComparison(flags *common.Flags, hSet string) (*core.Paralle
 			Name:        "PredHRL_" + h.Name,
 			Environment: partitionEnvConstructor,
 			Policy: policies.NewHierarchyPolicyConstructor(
-				0.1, 0.99, 0, true,
+				0.1, 0.99, 0,
 				h.Predicates...,
 			),
 		})

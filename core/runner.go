@@ -60,7 +60,7 @@ EpisodeLoop:
 		}
 
 		ctx.writer.Set(fmt.Sprintf(
-			"Experiment: %s, Run %d, Timesteps: %d/%d, Episode %d, Error: %d, Timedout: %d, OurOfBounds: %d",
+			"Experiment: %-40s, Run %d, Timesteps: %d/%d, Episode %d, Error: %d, Timedout: %d, OurOfBounds: %d",
 			e.Name, ctx.run, result.TotalTimeSteps, totalTimeSteps, episode, result.ErrorEpisodes, result.TimeoutEpisodes, result.BoundReachedEpisodes,
 		))
 		timeoutCtx, timeoutCancel := context.WithTimeout(ctx.ctx, ctx.EpisodeTimeout)
@@ -68,6 +68,8 @@ EpisodeLoop:
 		eCtx.Run = ctx.run
 		eCtx.Episode = episode
 		eCtx.StartTimeStep = result.TotalTimeSteps
+
+		e.Policy.ResetEpisode(eCtx)
 
 		go func(eCtx *EpisodeContext) {
 			state, err := e.Environment.Reset()
@@ -303,6 +305,8 @@ func (c *ParallelComparison) Run(ctx context.Context, runs int, rConfig *RunConf
 		writer := util.NewTerminalPrinter(1 * time.Second)
 		writer.Start(ctx)
 		writer.Write(fmt.Sprintf("Run %d\n", run))
+
+		parallelism = util.MinInt(parallelism, len(c.Experiments))
 
 		workCh := make(chan *parallelWork, parallelism)
 		resultsCh := make(chan *parallelResult, parallelism)

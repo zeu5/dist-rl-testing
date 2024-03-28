@@ -45,8 +45,8 @@ type PredicateAnalyzer struct {
 var _ core.Analyzer = &PredicateAnalyzer{}
 
 func NewPredicateAnalyzer(painter core.Painter, predicates ...policies.Predicate) *PredicateAnalyzer {
-	return &PredicateAnalyzer{
-		predicates: predicates,
+	out := &PredicateAnalyzer{
+		predicates: append([]policies.Predicate{policies.Init}, predicates...),
 		painter:    painter,
 		dataset: &predicateDataset{
 			PredicateEpisodes:       make(map[string]int),
@@ -59,6 +59,12 @@ func NewPredicateAnalyzer(painter core.Painter, predicates ...policies.Predicate
 		finalStates:  make(map[string]bool),
 		lastTimeStep: 0,
 	}
+
+	for _, pred := range out.predicates {
+		out.dataset.PredicateEpisodes[pred.Name] = 0
+		out.dataset.PredicateTimesteps[pred.Name] = 0
+	}
+	return out
 }
 
 func (p *PredicateAnalyzer) Reset() {
@@ -70,25 +76,35 @@ func (p *PredicateAnalyzer) Reset() {
 		FirstTimeStepToFinal:    -1,
 		FirstEpisodeToFinal:     -1,
 	}
+	for _, pred := range p.predicates {
+		p.dataset.PredicateEpisodes[pred.Name] = 0
+		p.dataset.PredicateTimesteps[pred.Name] = 0
+	}
 	p.finalStates = make(map[string]bool)
 	p.lastTimeStep = 0
 }
 
 func (p *PredicateAnalyzer) Analyze(eCtx *core.EpisodeContext, trace *core.Trace) {
 	curPredicate := 0
-	lastChangeTimestep := 0
+	targetReached := false
+	// map of number of timesteps spent at each predicate
+	predicateTimesteps := make(map[int]int)
 	for i := 0; i < trace.Len(); i++ {
 		step := trace.Step(i)
 		state := step.State
 		nextPredicate := curPredicate
-		for i, predicate := range p.predicates {
-			if predicate.Check(state) {
-				nextPredicate = i
+
+		if !targetReached {
+			for i, predicate := range p.predicates {
+				if predicate.Check(state) {
+					nextPredicate = i
+				}
 			}
 		}
 
+		// If we satisfy the final predicate
 		if nextPredicate == len(p.predicates)-1 {
-
+			targetReached = true
 			// Update first step to final
 			if p.dataset.FirstTimeStepToFinal == -1 {
 				p.dataset.FirstTimeStepToFinal = p.lastTimeStep + i
@@ -108,12 +124,20 @@ func (p *PredicateAnalyzer) Analyze(eCtx *core.EpisodeContext, trace *core.Trace
 			}
 		}
 
-		if nextPredicate != curPredicate {
-			p.dataset.PredicateEpisodes[p.predicates[curPredicate].Name]++
-			p.dataset.PredicateTimesteps[p.predicates[curPredicate].Name] += i - lastChangeTimestep
-			lastChangeTimestep = i
+		// update counter for how many steps spent in this predicate
+		if _, ok := predicateTimesteps[curPredicate]; !ok {
+			predicateTimesteps[curPredicate] = 0
 		}
+		predicateTimesteps[curPredicate]++
+
 		curPredicate = nextPredicate
+	}
+
+	for predIndex, timesteps := range predicateTimesteps {
+		pred := p.predicates[predIndex]
+
+		p.dataset.PredicateEpisodes[pred.Name]++
+		p.dataset.PredicateTimesteps[pred.Name] += timesteps
 	}
 
 	p.lastTimeStep += trace.Len()
@@ -149,9 +173,9 @@ type PredicateComparator struct {
 
 var _ core.Comparator = &PredicateComparator{}
 
-func NewPredicateComparator(savePath string) *PredicateComparator {
+func NewPredicateComparator(savePath string, hierarchyName string) *PredicateComparator {
 	return &PredicateComparator{
-		savePath: path.Join(savePath, "predicate_comparison.json"),
+		savePath: path.Join(savePath, "predicate_comparison_"+hierarchyName+".json"),
 	}
 }
 
@@ -166,17 +190,19 @@ func (p *PredicateComparator) Compare(experiments []string, datasets []core.Data
 }
 
 type PredicateComparatorConstructor struct {
-	savePath string
+	savePath      string
+	hierarchyName string
 }
 
 var _ core.ComparatorConstructor = &PredicateComparatorConstructor{}
 
 func (p *PredicateComparatorConstructor) NewComparator(run int) core.Comparator {
-	return NewPredicateComparator(path.Join(p.savePath, strconv.Itoa(run)))
+	return NewPredicateComparator(path.Join(p.savePath, strconv.Itoa(run)), p.hierarchyName)
 }
 
 func NewPredicateComparatorConstructor(hierarchyName string, savePath string) *PredicateComparatorConstructor {
 	return &PredicateComparatorConstructor{
-		savePath: savePath,
+		savePath:      savePath,
+		hierarchyName: hierarchyName,
 	}
 }

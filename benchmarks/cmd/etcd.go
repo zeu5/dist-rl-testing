@@ -62,7 +62,7 @@ func etcdHierarchyCommand() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "hierarchy",
 		Args:  cobra.ExactArgs(1),
-		Short: "Run etcd benchmarks for purecov",
+		Short: "Run etcd benchmarks for hierarchy coverage",
 		RunE: func(cmd *cobra.Command, args []string) error {
 			sigCh := make(chan os.Signal, 1)
 			signal.Notify(sigCh, os.Interrupt) // channel for interrupts from os
@@ -78,7 +78,7 @@ func etcdHierarchyCommand() *cobra.Command {
 				cancel()
 			}()
 
-			cmp, err := etcd.PrepareHierarchyComparison(flags, args[1])
+			cmp, err := etcd.PrepareHierarchyComparison(flags, args[0])
 			if err != nil {
 				return err
 			}

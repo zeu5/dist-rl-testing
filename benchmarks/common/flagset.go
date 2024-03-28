@@ -53,7 +53,7 @@ func DefaultFlags() *Flags {
 			MaxConsecutiveTimeouts: 20,
 			EpisodeTimeout:         10 * time.Second,
 		},
-		Parallelism: 3,
+		Parallelism: 10,
 	}
 }
 
