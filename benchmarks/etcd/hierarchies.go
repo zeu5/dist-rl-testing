@@ -67,8 +67,8 @@ func GetHierarchy(name string) []policies.Predicate {
 
 func oneInTerm4() []policies.Predicate {
 	return []policies.Predicate{
-		// {Name: "AnyInTerm2", Check: AllInTerm(2)},
-		// {Name: "AllInTerm2", Check: AllInTerm(2)},
+		{Name: "AnyInTerm2", Check: AnyInTerm(2)},
+		{Name: "AnyInTerm3", Check: AnyInTerm(3)},
 		{Name: "AnyInTerm4", Check: AnyInTerm(4)},
 	}
 }

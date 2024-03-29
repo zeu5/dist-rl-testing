@@ -14,6 +14,10 @@ fi
 mkdir results
 go build -o tester .
 
-./tester etcd hierarchy $1 --episodes $2 ${@:3}
+if [ "$#" -gt 2 ]; then 
+    ./tester etcd hierarchy $1 --episodes $2 ${@:3}
+else 
+    ./tester etcd hierarchy $1 --episodes $2
+fi
 
 python3 scripts/hierarchy_cov.py results

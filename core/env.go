@@ -43,32 +43,33 @@ type EpisodeContext struct {
 	// Trace including the steps taken in this episode
 	Trace *Trace
 
-	err     error
-	timeout bool
-	doneCh  chan struct{}
+	err        error
+	timeout    bool
+	cancelFunc context.CancelFunc
 }
 
 // Creates a new episode context
 func NewEpisodeContext(ctx context.Context) *EpisodeContext {
+	ctx, cancel := context.WithCancel(ctx)
 	return &EpisodeContext{
-		Context: ctx,
-		doneCh:  make(chan struct{}),
-		Trace:   NewTrace(),
+		Context:    ctx,
+		cancelFunc: cancel,
+		Trace:      NewTrace(),
 	}
 }
 
 func (e *EpisodeContext) Error(err error) {
 	e.err = err
-	close(e.doneCh)
+	e.cancelFunc()
 }
 
 func (e *EpisodeContext) Timeout() {
 	e.timeout = true
-	close(e.doneCh)
+	e.cancelFunc()
 }
 
 func (e *EpisodeContext) Finish() {
-	close(e.doneCh)
+	e.cancelFunc()
 }
 
 func (e *EpisodeContext) IsError() bool {
@@ -80,7 +81,7 @@ func (e *EpisodeContext) IsTimeout() bool {
 }
 
 func (e *EpisodeContext) Done() <-chan struct{} {
-	return e.doneCh
+	return e.Context.Done()
 }
 
 type StepContext struct {

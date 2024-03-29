@@ -24,8 +24,7 @@ def plot_cov(dirpath):
     for pred, pred_runs in data.items():
         fig, ax = plt.subplots()
 
-        keys = list(pred_runs[0].keys())
-        for key in keys:
+        for key in ["PredHRL_"+pred, "Random", "BonusMax", "NegRLVisits"]:
             timesteps = np.array(pred_runs[0][key]["FinalPredicateTimesteps"])
             coverage = np.array(pred_runs[0][key]["FinalPredicateStates"])
             ax.plot(timesteps, coverage, label=key)

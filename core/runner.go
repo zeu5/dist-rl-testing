@@ -70,6 +70,12 @@ EpisodeLoop:
 		eCtx.StartTimeStep = result.TotalTimeSteps
 
 		go func(eCtx *EpisodeContext) {
+			defer func() {
+				if r := recover(); r != nil {
+					eCtx.Error(fmt.Errorf("errored in episode %d: %#v", eCtx.Episode, r))
+				}
+			}()
+
 			state, err := e.Environment.Reset()
 			if err != nil {
 				eCtx.Error(err)
