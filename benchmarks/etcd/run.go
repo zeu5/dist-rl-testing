@@ -18,8 +18,8 @@ func PreparePureCoverageComparison(flags *common.Flags) *core.ParallelComparison
 		ColorLeader(),
 		ColorVote(),
 		ColorIndex(),
-		ColorBoundedTerm(3),
-		ColorBoundedLog(3),
+		ColorBoundedTerm(6),
+		ColorBoundedLog(6),
 	}
 
 	raftEnvConstructor := NewPartitionEnvironmentConstructor(RaftEnvironmentConfig{
@@ -40,6 +40,9 @@ func PreparePureCoverageComparison(flags *common.Flags) *core.ParallelComparison
 		BoundaryPredicate:     TermBound(9),
 	}).GetConstructor(raftEnvConstructor)
 
+	if flags.Debug {
+		cmp.AddAnalysis("Debug", analysis.NewPrintDebugAnalyzerConstructor(flags.SavePath, flags.Episodes-10), analysis.NewNoOpComparatorConstructor())
+	}
 	cmp.AddAnalysis("Coverage", analysis.NewColorAnalyzerConstructor(painter), analysis.NewColorComparatorConstructor(flags.SavePath))
 
 	cmp.AddExperiment(&core.ParallelExperiment{
@@ -82,14 +85,14 @@ func PrepareHierarchyComparison(flags *common.Flags, hSet string) (*core.Paralle
 		ColorLeader(),
 		ColorVote(),
 		ColorIndex(),
-		ColorBoundedTerm(3),
-		ColorBoundedLog(3),
+		ColorBoundedTerm(6),
+		ColorBoundedLog(6),
 	}
 
 	raftEnvConstructor := NewPartitionEnvironmentConstructor(RaftEnvironmentConfig{
 		NumNodes:      flags.NumNodes,
-		ElectionTick:  16,
-		HeartbeatTick: 4,
+		ElectionTick:  9,
+		HeartbeatTick: 3,
 		Requests:      flags.Requests,
 	})
 	painter := core.NewComposedPainter(colors...).Painter()
@@ -105,6 +108,9 @@ func PrepareHierarchyComparison(flags *common.Flags, hSet string) (*core.Paralle
 		BoundaryPredicate:     TermBound(9),
 	}).GetConstructor(raftEnvConstructor)
 
+	if flags.Debug {
+		cmp.AddAnalysis("Debug", analysis.NewPrintDebugAnalyzerConstructor(flags.SavePath, flags.Episodes-10), analysis.NewNoOpComparatorConstructor())
+	}
 	for _, h := range hierarchies {
 		cmp.AddAnalysis(
 			"HierarchyCoverage_"+h.Name,

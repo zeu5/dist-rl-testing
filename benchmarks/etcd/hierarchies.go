@@ -21,7 +21,7 @@ func getHierarchySet(hSet string) []hierarchySet {
 		out := make([]hierarchySet, 0)
 		for i := len(hierarchy) - 1; i >= 0; i-- {
 			out = append(out, hierarchySet{
-				Name:       fmt.Sprintf("%s[%d]", hSet, i+1),
+				Name:       fmt.Sprintf("%s[%d]", hSet, len(hierarchy)-i),
 				Predicates: hierarchy[i:],
 			})
 		}
@@ -31,7 +31,7 @@ func getHierarchySet(hSet string) []hierarchySet {
 	switch hSet {
 	case "set1":
 		hierarchies = []string{
-			"OneInTerm3", "AllInTerm2", "TermDiff2",
+			"OneInTerm4", "AllInTerm3", "TermDiff2",
 			"MinCommit2", "LeaderInTerm4", "OneLeaderOneCandidate",
 		}
 	default:
@@ -49,10 +49,10 @@ func getHierarchySet(hSet string) []hierarchySet {
 
 func GetHierarchy(name string) []policies.Predicate {
 	switch name {
-	case "OneInTerm3":
-		return oneInTerm3()
-	case "AllInTerm2":
-		return allInTerm2()
+	case "OneInTerm4":
+		return oneInTerm4()
+	case "AllInTerm3":
+		return allInTerm3()
 	case "TermDiff2":
 		return termDiff2()
 	case "MinCommit2":
@@ -65,17 +65,17 @@ func GetHierarchy(name string) []policies.Predicate {
 	return []policies.Predicate{}
 }
 
-func oneInTerm3() []policies.Predicate {
+func oneInTerm4() []policies.Predicate {
 	return []policies.Predicate{
 		// {Name: "AnyInTerm2", Check: AllInTerm(2)},
 		// {Name: "AllInTerm2", Check: AllInTerm(2)},
-		{Name: "AnyInTerm3", Check: AnyInTerm(3)},
+		{Name: "AnyInTerm4", Check: AnyInTerm(4)},
 	}
 }
 
-func allInTerm2() []policies.Predicate {
+func allInTerm3() []policies.Predicate {
 	return []policies.Predicate{
-		{Name: "AllInTerm2", Check: AllInTerm(2)},
+		{Name: "AllInTerm3", Check: AllInTerm(3)},
 	}
 }
 
@@ -93,7 +93,7 @@ func minCommit2() []policies.Predicate {
 
 func leaderInTerm4() []policies.Predicate {
 	return []policies.Predicate{
-		// {Name: "AllInTerm3", Check: AllInTerm(3)},
+		{Name: "AllInTerm3", Check: AllInTerm(3)},
 		{Name: "LeaderInTerm4", Check: LeaderElectedPredicateStateWithTerm(4)},
 	}
 }

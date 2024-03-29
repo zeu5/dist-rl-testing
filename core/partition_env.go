@@ -153,11 +153,11 @@ type PartitionState struct {
 	Requests       []Request
 	activeNodes    map[int]bool
 	NodeColors     map[int]Color
-	nodePartitions map[int]int
+	NodePartitions map[int]int
 	repeatCount    int
 	Partition      [][]Color
 
-	numNodes          int
+	NumNodes          int
 	canDeliverRequest bool
 	withCrashes       bool
 	remainingCrashes  int
@@ -174,17 +174,17 @@ func (s *PartitionState) copy() *PartitionState {
 		Requests:       make([]Request, 0),
 		activeNodes:    make(map[int]bool),
 		NodeColors:     make(map[int]Color),
-		nodePartitions: make(map[int]int),
+		NodePartitions: make(map[int]int),
 		repeatCount:    s.repeatCount,
 		Partition:      make([][]Color, 0),
 
-		numNodes:          s.numNodes,
+		NumNodes:          s.NumNodes,
 		canDeliverRequest: s.canDeliverRequest,
 		withCrashes:       s.withCrashes,
 		remainingCrashes:  s.remainingCrashes,
 		maxCrashedNodes:   s.maxCrashedNodes,
 	}
-	for i := 1; i <= s.numNodes; i++ {
+	for i := 1; i <= s.NumNodes; i++ {
 		new.NodeStates[i] = s.NodeStates[i]
 	}
 	new.messages = append(new.messages, s.messages...)
@@ -192,8 +192,8 @@ func (s *PartitionState) copy() *PartitionState {
 	for i := range s.activeNodes {
 		new.activeNodes[i] = true
 	}
-	for i := range s.nodePartitions {
-		new.nodePartitions[i] = s.nodePartitions[i]
+	for i := range s.NodePartitions {
+		new.NodePartitions[i] = s.NodePartitions[i]
 	}
 	for i := range s.NodeColors {
 		new.NodeColors[i] = s.NodeColors[i].Copy()
@@ -215,17 +215,17 @@ func (s *PartitionState) copyWith(pState PState) *PartitionState {
 		Requests:       make([]Request, 0),
 		activeNodes:    make(map[int]bool),
 		NodeColors:     make(map[int]Color),
-		nodePartitions: make(map[int]int),
+		NodePartitions: make(map[int]int),
 		repeatCount:    s.repeatCount,
 		Partition:      make([][]Color, 0),
 
-		numNodes:          s.numNodes,
+		NumNodes:          s.NumNodes,
 		canDeliverRequest: pState.CanDeliverRequest(),
 		withCrashes:       s.withCrashes,
 		remainingCrashes:  s.remainingCrashes,
 		maxCrashedNodes:   s.maxCrashedNodes,
 	}
-	for i := 1; i <= s.numNodes; i++ {
+	for i := 1; i <= s.NumNodes; i++ {
 		new.NodeStates[i] = pState.NodeState(i)
 	}
 	new.messages = append(new.messages, pState.Messages()...)
@@ -233,8 +233,8 @@ func (s *PartitionState) copyWith(pState PState) *PartitionState {
 	for i := range s.activeNodes {
 		new.activeNodes[i] = true
 	}
-	for i := range s.nodePartitions {
-		new.nodePartitions[i] = s.nodePartitions[i]
+	for i := range s.NodePartitions {
+		new.NodePartitions[i] = s.NodePartitions[i]
 	}
 	for i := 0; i < len(s.Partition); i++ {
 		new.Partition = append(new.Partition, make([]Color, 0))
@@ -257,7 +257,7 @@ func (s *PartitionState) paint(painter Painter) {
 	for i := 0; i < len(s.Partition); i++ {
 		newPartition = append(newPartition, make([]Color, 0))
 	}
-	for i, p := range s.nodePartitions {
+	for i, p := range s.NodePartitions {
 		newPartition[p] = append(newPartition[p], s.NodeColors[i])
 	}
 	// Need to shrink empty partitions
@@ -276,9 +276,9 @@ func (s *PartitionState) paint(painter Painter) {
 		emptyPartition := emptyPartitions[0]
 		newPartition = append(newPartition[:emptyPartition], newPartition[emptyPartition+1:]...)
 		// Update the partition map
-		for i, p := range s.nodePartitions {
+		for i, p := range s.NodePartitions {
 			if p > emptyPartition {
-				s.nodePartitions[i]--
+				s.NodePartitions[i]--
 			}
 		}
 	}
@@ -410,7 +410,7 @@ func (s *PartitionState) Actions() []Action {
 		}
 	}
 	if s.withCrashes {
-		totalNodes := s.numNodes
+		totalNodes := s.NumNodes
 		crashedNodes := totalNodes - len(s.activeNodes)
 		if (crashedNodes < s.maxCrashedNodes || s.maxCrashedNodes == 0) && s.remainingCrashes > 0 {
 
@@ -505,11 +505,11 @@ func (e *partitionEnvironment) Reset() (State, error) {
 		Requests:       pState.Requests(),
 		activeNodes:    make(map[int]bool),
 		NodeColors:     make(map[int]Color),
-		nodePartitions: make(map[int]int),
+		NodePartitions: make(map[int]int),
 		repeatCount:    0,
 		Partition:      make([][]Color, 0),
 
-		numNodes:          e.config.NumNodes,
+		NumNodes:          e.config.NumNodes,
 		canDeliverRequest: pState.CanDeliverRequest(),
 		withCrashes:       e.config.WithCrashes,
 		remainingCrashes:  e.config.MaxCrashActions,
@@ -520,7 +520,7 @@ func (e *partitionEnvironment) Reset() (State, error) {
 		ns := pState.NodeState(i)
 		color := e.config.Painter(ns)
 		newState.activeNodes[i] = true
-		newState.nodePartitions[i] = 0
+		newState.NodePartitions[i] = 0
 		newState.NodeStates[i] = ns
 		newState.NodeColors[i] = color
 		colors[i-1] = color
@@ -552,6 +552,8 @@ func (e *partitionEnvironment) Step(a Action, ctx *StepContext) (State, error) {
 func (e *partitionEnvironment) doTicks(ctx *StepContext) (*PartitionState, error) {
 	var pState PState = nil
 	var err error = nil
+	ctx.AdditionalInfo["messages_delivered"] = 0
+	ctx.AdditionalInfo["messages_dropped"] = 0
 	for i := 0; i < e.config.TicksBetweenPartition; i++ {
 		select {
 		case <-ctx.Context.Done():
@@ -572,8 +574,8 @@ func (e *partitionEnvironment) doTicks(ctx *StepContext) (*PartitionState, error
 			toDeliver := make([]Message, 0)
 			toDrop := make([]Message, 0)
 			for _, m := range messagesToConsider {
-				fromP := e.curState.nodePartitions[m.From()]
-				toP := e.curState.nodePartitions[m.To()]
+				fromP := e.curState.NodePartitions[m.From()]
+				toP := e.curState.NodePartitions[m.To()]
 				_, toActive := e.curState.activeNodes[m.To()]
 				if fromP == toP && toActive {
 					toDeliver = append(toDeliver, m)
@@ -584,12 +586,14 @@ func (e *partitionEnvironment) doTicks(ctx *StepContext) (*PartitionState, error
 				}
 			}
 			if len(toDeliver) > 0 {
+				ctx.AdditionalInfo["messages_delivered"] = ctx.AdditionalInfo["messages_delivered"].(int) + len(toDeliver)
 				_, err := e.pEnv.DeliverMessages(toDeliver, ctx)
 				if err != nil {
 					return nil, err
 				}
 			}
 			if len(toDrop) > 0 {
+				ctx.AdditionalInfo["messages_dropped"] = ctx.AdditionalInfo["messages_dropped"].(int) + len(toDrop)
 				_, err := e.pEnv.DropMessages(toDrop, ctx)
 				if err != nil {
 					return nil, err
@@ -660,7 +664,7 @@ func (e *partitionEnvironment) handleChangePartition(act *ChangePartitionAction,
 	}
 	sort.Sort(partitionSlice(newPartition))
 	newState := e.curState.copy()
-	newState.nodePartitions = newPartitionMap
+	newState.NodePartitions = newPartitionMap
 	newState.Partition = newPartition
 	e.curState = newState
 	newState, err := e.doTicks(ctx)
@@ -699,7 +703,7 @@ func (e *partitionEnvironment) handleStartAction(_ *StartAction, ctx *StepContex
 	// Add new partition for the newly started node
 	newState = newState.copyWith(pState)
 	if toActivate != -1 {
-		newState.nodePartitions[toActivate] = len(newState.Partition)
+		newState.NodePartitions[toActivate] = len(newState.Partition)
 		newState.Partition = append(newState.Partition, make([]Color, 0))
 	}
 
@@ -745,14 +749,14 @@ func (e *partitionEnvironment) handleStopAction(act *StopAction, ctx *StepContex
 			inActivePartition := -1
 			for i := 1; i <= e.config.NumNodes; i++ {
 				if _, active := e.curState.activeNodes[i]; !active {
-					inActivePartition = e.curState.nodePartitions[i]
+					inActivePartition = e.curState.NodePartitions[i]
 					break
 				}
 			}
-			newState.nodePartitions[toDeactivate] = inActivePartition
+			newState.NodePartitions[toDeactivate] = inActivePartition
 		} else {
 			// We need to create a new partition for the inactive node
-			newState.nodePartitions[toDeactivate] = len(newState.Partition)
+			newState.NodePartitions[toDeactivate] = len(newState.Partition)
 			newState.Partition = append(newState.Partition, make([]Color, 0))
 		}
 	}
@@ -816,11 +820,11 @@ func defaultPartitionState(config *PEnvironmentConfig) *PartitionState {
 		Requests:       make([]Request, 0),
 		activeNodes:    make(map[int]bool),
 		NodeColors:     make(map[int]Color),
-		nodePartitions: make(map[int]int),
+		NodePartitions: make(map[int]int),
 		repeatCount:    0,
 		Partition:      make([][]Color, 0),
 
-		numNodes:          config.NumNodes,
+		NumNodes:          config.NumNodes,
 		canDeliverRequest: false,
 		withCrashes:       config.WithCrashes,
 		remainingCrashes:  config.MaxCrashActions,
@@ -828,7 +832,7 @@ func defaultPartitionState(config *PEnvironmentConfig) *PartitionState {
 	}
 	for i := 1; i <= config.NumNodes; i++ {
 		out.activeNodes[i] = true
-		out.nodePartitions[i] = 0
+		out.NodePartitions[i] = 0
 	}
 	out.Partition = append(out.Partition, make([]Color, 0))
 	return out

@@ -83,7 +83,6 @@ func (r *RaftPartitionEnv) makeNodes() {
 			MaxUncommittedEntriesSize: 1 << 30,
 			Logger:                    &raft.DefaultLogger{Logger: log.New(io.Discard, "", 0)},
 			CheckQuorum:               true,
-			PreVote:                   true,
 		})
 		r.nodes[nodeID].Bootstrap(peers)
 	}

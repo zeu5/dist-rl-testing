@@ -84,7 +84,7 @@ EpisodeLoop:
 				default:
 				}
 
-				sCtx := &StepContext{Step: step, EpisodeContext: eCtx}
+				sCtx := &StepContext{Step: step, EpisodeContext: eCtx, AdditionalInfo: make(map[string]interface{})}
 				action := e.Policy.PickAction(
 					sCtx,
 					state,
@@ -100,6 +100,7 @@ EpisodeLoop:
 					State:     state,
 					Action:    action,
 					NextState: nextState,
+					Misc:      util.CopyStringMap(sCtx.AdditionalInfo),
 				})
 				state = nextState
 			}

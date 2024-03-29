@@ -39,3 +39,11 @@ func CopyStringIntMap(m map[string]int) map[string]int {
 	}
 	return out
 }
+
+func CopyStringMap(m map[string]interface{}) map[string]interface{} {
+	out := make(map[string]interface{})
+	for k, v := range m {
+		out[k] = v
+	}
+	return out
+}

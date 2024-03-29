@@ -25,6 +25,7 @@ var (
 	maxConsecutiveTimeouts int
 	episodeTimeout         int
 	parallelism            int
+	debug                  bool
 )
 
 func AddFlags(cmd *cobra.Command) {
@@ -44,6 +45,7 @@ func AddFlags(cmd *cobra.Command) {
 	cmd.PersistentFlags().IntVar(&maxConsecutiveTimeouts, "max-consecutive-timeouts", flags.MaxConsecutiveTimeouts, "Maximum number of consecutive timeouts")
 	cmd.PersistentFlags().IntVar(&episodeTimeout, "episode-timeout", int(flags.EpisodeTimeout.Seconds()), "Episode timeout")
 	cmd.PersistentFlags().IntVar(&parallelism, "parallelism", flags.Parallelism, "Number of parallel runs")
+	cmd.PersistentFlags().BoolVar(&debug, "debug", flags.Debug, "Debug mode")
 }
 
 func UpdateFlags() {
@@ -63,4 +65,5 @@ func UpdateFlags() {
 	flags.MaxConsecutiveTimeouts = maxConsecutiveTimeouts
 	flags.EpisodeTimeout = time.Duration(episodeTimeout) * time.Second
 	flags.Parallelism = parallelism
+	flags.Debug = debug
 }

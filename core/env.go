@@ -84,7 +84,8 @@ func (e *EpisodeContext) Done() <-chan struct{} {
 }
 
 type StepContext struct {
-	Step int
+	Step           int
+	AdditionalInfo map[string]interface{}
 	*EpisodeContext
 }
 

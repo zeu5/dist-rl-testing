@@ -2,6 +2,7 @@ package analysis
 
 import (
 	"bytes"
+	"encoding/json"
 	"fmt"
 	"os"
 	"path"
@@ -20,8 +21,10 @@ type PrintDebugAnalyzer struct {
 var _ core.Analyzer = &PrintDebugAnalyzer{}
 
 func NewPrintDebugAnalyzer(savePath string, threshold int) *PrintDebugAnalyzer {
-	// create a traces directory under save path
-	os.MkdirAll(path.Join(savePath, "traces"), 0755)
+	// create a traces directory under save path if not exists
+	if _, err := os.Stat(path.Join(savePath, "traces")); os.IsNotExist(err) {
+		os.MkdirAll(path.Join(savePath, "traces"), 0755)
+	}
 	return &PrintDebugAnalyzer{
 		savePath:         path.Join(savePath, "traces"),
 		thresholdEpisode: threshold,
@@ -36,7 +39,7 @@ func (a *PrintDebugAnalyzer) Analyze(ctx *core.EpisodeContext, trace *core.Trace
 
 	for i := 0; i < trace.Len(); i++ {
 		step := trace.Step(i)
-		buf.WriteString(fmt.Sprintf("Step %d\n%s\n", i, stepToString(step.State, step.Action, step.NextState)))
+		buf.WriteString(fmt.Sprintf("Step %d\n%s\n", i, stepToString(step)))
 		buf.WriteString("\n")
 	}
 	fileName := fmt.Sprintf("%d_trace_%d.txt", ctx.Run, ctx.Episode)
@@ -47,8 +50,29 @@ func (a *PrintDebugAnalyzer) Analyze(ctx *core.EpisodeContext, trace *core.Trace
 	os.WriteFile(file, buf.Bytes(), 0644)
 }
 
-func stepToString(state core.State, action core.Action, nextState core.State) string {
-	return fmt.Sprintf("State: \n%s\nAction: %s\n\nNext State: \n%s\n", stateToString(state), actionToString(action), stateToString(nextState))
+func stepToString(step *core.Step) string {
+	return fmt.Sprintf(
+		"State: \n%s\nAction: %s\n\nNext State: \n%s\nAdditional Info:\n%s\n",
+		stateToString(step.State),
+		actionToString(step.Action),
+		stateToString(step.NextState),
+		addInfoToString(step.Misc),
+	)
+}
+
+func addInfoToString(addInfo map[string]interface{}) string {
+	out := ""
+	if _, ok := addInfo["messages_delivered"]; ok {
+
+		messagesDelivered := addInfo["messages_delivered"].(int)
+		messagesDropped := addInfo["messages_dropped"].(int)
+
+		out += fmt.Sprintf("Messages Delivered: %d\nMessages Dropped: %d\n", messagesDelivered, messagesDropped)
+	}
+	if _, ok := addInfo["predicate_state"]; ok {
+		out += fmt.Sprintf("Predicate State: %s\n", addInfo["predicate_state"].(string))
+	}
+	return out
 }
 
 func stateToString(state core.State) string {
@@ -57,17 +81,28 @@ func stateToString(state core.State) string {
 		return "not a partition state"
 	}
 	out := ""
-	for i, c := range ps.NodeColors {
+	partitionMap := make(map[int][]int)
+	for node, p := range ps.NodePartitions {
+		if _, ok := partitionMap[p]; !ok {
+			partitionMap[p] = make([]int, 0)
+		}
+		partitionMap[p] = append(partitionMap[p], node)
+	}
+	partString := "["
+	for i := 0; i < len(partitionMap); i++ {
+		partString += fmt.Sprintf(" [%v] ", partitionMap[i])
+	}
+	partString += "]"
+	out += fmt.Sprintf("Partition: %s\n", partString)
+	for i := 1; i <= ps.NumNodes; i++ {
+		c := ps.NodeColors[i]
 		switch color := c.(type) {
 		case *core.InActiveColor:
 			out += fmt.Sprintf("%d: Inactive\n", i)
 		case *core.ComposedColor:
-			cs := "{ "
-			for j, v := range color.Map() {
-				cs += fmt.Sprintf("%s: %#v, ", j, v)
-			}
-			cs += "}"
-			out += fmt.Sprintf("%d: %s\n", i, cs)
+
+			bs, _ := json.Marshal(color.Map())
+			out += fmt.Sprintf("%d: {%s}\n", i, string(bs))
 		}
 	}
 	return out
@@ -113,7 +148,9 @@ func NewPrintDebugAnalyzerConstructor(savePath string, thresholdEpisode int) *Pr
 }
 
 func (c *PrintDebugAnalyzerConstructor) NewAnalyzer(exp string, _ int) core.Analyzer {
-	os.MkdirAll(path.Join(c.SavePath, "traces"), 0755)
+	if _, err := os.Stat(path.Join(c.SavePath, "traces")); os.IsNotExist(err) {
+		os.MkdirAll(path.Join(c.SavePath, "traces"), 0755)
+	}
 	return &PrintDebugAnalyzer{
 		savePath:         path.Join(c.SavePath, "traces"),
 		exp:              exp,

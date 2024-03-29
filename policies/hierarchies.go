@@ -116,7 +116,7 @@ func (h *HierarchyPolicy) ResetEpisode(_ *core.EpisodeContext) {
 	h.targetReached = false
 }
 
-func (h *HierarchyPolicy) UpdateStep(_ *core.StepContext, state core.State, action core.Action, nextState core.State) {
+func (h *HierarchyPolicy) UpdateStep(sCtx *core.StepContext, state core.State, action core.Action, nextState core.State) {
 	reward := false
 	ourOfSpace := false
 	curPredicate := h.curPredicate
@@ -140,6 +140,7 @@ func (h *HierarchyPolicy) UpdateStep(_ *core.StepContext, state core.State, acti
 		}
 		h.curPredicate = nextPredicate
 	}
+	sCtx.AdditionalInfo["predicate_state"] = h.predicates[curPredicate].Name
 	if _, ok := h.traceSegments[curPredicate]; !ok {
 		h.traceSegments[curPredicate] = make([]*hierarchyStep, 0)
 	}
