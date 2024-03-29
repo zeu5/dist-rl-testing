@@ -121,7 +121,7 @@ func PrepareHierarchyComparison(flags *common.Flags, hSet string) (*core.Paralle
 			Name:        "PredHRL_" + h.Name,
 			Environment: partitionEnvConstructor,
 			Policy: policies.NewHierarchyPolicyConstructor(
-				0.1, 0.99, 0,
+				0.2, 0.95, 0.05,
 				h.Predicates...,
 			),
 		})

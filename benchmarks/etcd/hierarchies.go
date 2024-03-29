@@ -4,23 +4,19 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/zeu5/dist-rl-testing/benchmarks/common"
 	"github.com/zeu5/dist-rl-testing/policies"
 	"go.etcd.io/raft/v3"
 )
 
-type hierarchySet struct {
-	Name       string
-	Predicates []policies.Predicate
-}
-
 // returns a set of hierarchies for the given name.
 // If the set name is a single hierarchy then it returns that specific hierarchy
-func getHierarchySet(hSet string) []hierarchySet {
+func getHierarchySet(hSet string) []common.HierarchySet {
 	if !strings.Contains(strings.ToLower(hSet), "set") {
 		hierarchy := GetHierarchy(hSet)
-		out := make([]hierarchySet, 0)
+		out := make([]common.HierarchySet, 0)
 		for i := len(hierarchy) - 1; i >= 0; i-- {
-			out = append(out, hierarchySet{
+			out = append(out, common.HierarchySet{
 				Name:       fmt.Sprintf("%s[%d]", hSet, len(hierarchy)-i),
 				Predicates: hierarchy[i:],
 			})
@@ -35,11 +31,11 @@ func getHierarchySet(hSet string) []hierarchySet {
 			"MinCommit2", "LeaderInTerm4", "OneLeaderOneCandidate",
 		}
 	default:
-		return []hierarchySet{}
+		return []common.HierarchySet{}
 	}
-	out := make([]hierarchySet, len(hierarchies))
+	out := make([]common.HierarchySet, len(hierarchies))
 	for i, h := range hierarchies {
-		out[i] = hierarchySet{
+		out[i] = common.HierarchySet{
 			Name:       h,
 			Predicates: GetHierarchy(h),
 		}

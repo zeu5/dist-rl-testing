@@ -8,6 +8,8 @@ import (
 )
 
 var (
+	// Common flags to all benchmarks. Parsed and updated in root.go PersistentPreRun
+	// The flags are also stored to config.json
 	flags                 *common.Flags = common.DefaultFlags()
 	savePath              string
 	numNodes              int

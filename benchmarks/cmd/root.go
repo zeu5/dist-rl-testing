@@ -13,6 +13,7 @@ func RootCommand() *cobra.Command {
 
 	cmd.AddCommand(
 		EtcdCommand(),
+		RSLCommand(),
 	)
 
 	return cmd
