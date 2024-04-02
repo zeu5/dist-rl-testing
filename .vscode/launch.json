@@ -10,7 +10,10 @@
             "request": "launch",
             "mode": "auto",
             "program": "${workspaceFolder}",
-            "args": ["etcd", "cov"]
+            "args": [
+                "etcd",
+                "cov"
+            ]
         },
         {
             "name": "Run etcd hierarchy",
@@ -18,7 +21,19 @@
             "request": "launch",
             "mode": "auto",
             "program": "${workspaceFolder}",
-            "args": ["etcd", "hierarchy", "LeaderInTerm5"]
+            "args": [
+                "etcd",
+                "hierarchy",
+                "LeaderInTerm5"
+            ]
+        },
+        {
+            "name": "Plot coverage python file",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "args": ["results"]
         }
     ]
 }

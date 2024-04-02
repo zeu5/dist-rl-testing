@@ -53,17 +53,12 @@ func PreparePureCoverageComparison(flags *common.Flags) *core.ParallelComparison
 	cmp.AddExperiment(&core.ParallelExperiment{
 		Name:        "BonusMax",
 		Environment: partitionEnvConstructor,
-		Policy:      policies.NewBonusPolicyGreedyRewardConstructor(0.1, 0.99, 0.05),
+		Policy:      policies.NewBonusPolicyGreedyRewardConstructor(0.2, 0.95, 0.05),
 	})
 	cmp.AddExperiment(&core.ParallelExperiment{
 		Name:        "NegRLVisits",
 		Environment: partitionEnvConstructor,
 		Policy:      policies.NewSoftMaxNegFreqPolicyConstructor(0.3, 0.7, 1),
-	})
-	cmp.AddExperiment(&core.ParallelExperiment{
-		Name:        "NegRL",
-		Environment: partitionEnvConstructor,
-		Policy:      policies.NewSoftMaxNegPolicyConstructor(0.1, 0.99, 0),
 	})
 	return cmp
 }
@@ -135,7 +130,7 @@ func PrepareHierarchyComparison(flags *common.Flags, hSet string) (*core.Paralle
 	cmp.AddExperiment(&core.ParallelExperiment{
 		Name:        "BonusMax",
 		Environment: partitionEnvConstructor,
-		Policy:      policies.NewBonusPolicyGreedyRewardConstructor(0.1, 0.99, 0.05),
+		Policy:      policies.NewBonusPolicyGreedyRewardConstructor(0.2, 0.95, 0.05),
 	})
 	cmp.AddExperiment(&core.ParallelExperiment{
 		Name:        "NegRLVisits",

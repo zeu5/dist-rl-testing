@@ -29,6 +29,7 @@ func getHierarchySet(hSet string) []common.HierarchySet {
 		hierarchies = []string{
 			"OneInTerm4", "AllInTerm3", "TermDiff2",
 			"MinCommit2", "LeaderInTerm4", "OneLeaderOneCandidate",
+			"AtLeastOneCommitInTerm2", "LogGap2", "CommitGap2",
 		}
 	default:
 		return []common.HierarchySet{}
@@ -57,6 +58,12 @@ func GetHierarchy(name string) []policies.Predicate {
 		return leaderInTerm4()
 	case "OneLeaderOneCandidate":
 		return oneLeaderOneCandidate()
+	case "AtLeastOneCommitInTerm2":
+		return atleastOneCommitInTerm2()
+	case "LogGap2":
+		return logGap2()
+	case "CommitGap2":
+		return commitGap2()
 	}
 	return []policies.Predicate{}
 }
@@ -97,5 +104,23 @@ func leaderInTerm4() []policies.Predicate {
 func oneLeaderOneCandidate() []policies.Predicate {
 	return []policies.Predicate{
 		{Name: "OneLeaderOneCandidate", Check: InState(raft.StateLeader).And(InState(raft.StateCandidate))},
+	}
+}
+
+func atleastOneCommitInTerm2() []policies.Predicate {
+	return []policies.Predicate{
+		{Name: "AtLeastOneCommitInTerm2", Check: AtLeastOneLogNotEmptyTerm(2)},
+	}
+}
+
+func logGap2() []policies.Predicate {
+	return []policies.Predicate{
+		{Name: "MinLogDiff2", Check: MinLogLengthDiff(2)},
+	}
+}
+
+func commitGap2() []policies.Predicate {
+	return []policies.Predicate{
+		{Name: "CommitGap2", Check: MinCommitGap(2)},
 	}
 }

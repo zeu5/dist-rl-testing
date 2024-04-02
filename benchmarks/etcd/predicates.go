@@ -264,9 +264,9 @@ func AtLeastOneLogNotEmptyTerm(term uint64) policies.PredicateFunc {
 		for _, state := range pS.NodeStates { // for each node state
 			repState := state.(RaftNodeState)
 			curLog := committedLog(repState.Log, repState.State)
-			filteredLog := filterEntriesNoElection(curLog)
-			if len(filteredLog) > 0 {
-				for _, ent := range filteredLog {
+			// filteredLog := filterEntriesNoElection(curLog)
+			if len(curLog) > 0 {
+				for _, ent := range curLog {
 					if ent.Term == term {
 						return true
 					}
@@ -522,6 +522,42 @@ func InStateWithCommittedEntries(state raft.StateType, num int) policies.Predica
 		}
 		return false
 	}
+}
+
+func MinLogLengthDiff(diff int) policies.PredicateFunc {
+	return wrapPredicate(func(ps *core.PartitionState) bool {
+		minLogLength := math.MaxInt
+		maxLogLength := math.MinInt
+
+		for _, rs := range ps.NodeStates {
+			l := len(rs.(RaftNodeState).Log)
+			if l > maxLogLength {
+				maxLogLength = l
+			}
+			if l < minLogLength {
+				minLogLength = l
+			}
+		}
+		return maxLogLength-minLogLength >= diff
+	})
+}
+
+func MinCommitGap(diff int) policies.PredicateFunc {
+	return wrapPredicate(func(ps *core.PartitionState) bool {
+		minCommit := math.MaxInt
+		maxCommit := math.MinInt
+
+		for _, rs := range ps.NodeStates {
+			l := int(rs.(RaftNodeState).State.Commit)
+			if l > maxCommit {
+				maxCommit = l
+			}
+			if l < minCommit {
+				minCommit = l
+			}
+		}
+		return maxCommit-minCommit >= diff
+	})
 }
 
 // extract the committed log for a node

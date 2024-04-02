@@ -160,7 +160,7 @@ func NodeDecided(node int) policies.PredicateFunc {
 	})
 }
 
-func NumDecided(d int) policies.PredicateFunc {
+func AnyDecided(d int) policies.PredicateFunc {
 	return wrapPredicate(func(ps *core.PartitionState) bool {
 		for _, rs := range ps.NodeStates {
 			decided := rs.(LocalState).Decided
@@ -208,7 +208,7 @@ func NodeNumDecided(node, d int) policies.PredicateFunc {
 	})
 }
 
-func InBallot(ballot int) policies.PredicateFunc {
+func AnyInBallot(ballot int) policies.PredicateFunc {
 	return wrapPredicate(func(ps *core.PartitionState) bool {
 		for _, rs := range ps.NodeStates {
 			if rs.(LocalState).MaxAcceptedProposal.Ballot.Num == ballot {
@@ -216,6 +216,17 @@ func InBallot(ballot int) policies.PredicateFunc {
 			}
 		}
 		return false
+	})
+}
+
+func AllInBallot(ballot int) policies.PredicateFunc {
+	return wrapPredicate(func(ps *core.PartitionState) bool {
+		for _, rs := range ps.NodeStates {
+			if rs.(LocalState).MaxAcceptedProposal.Ballot.Num < ballot {
+				return false
+			}
+		}
+		return true
 	})
 }
 

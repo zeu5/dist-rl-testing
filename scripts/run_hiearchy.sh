@@ -15,9 +15,9 @@ mkdir results
 go build -o tester .
 
 if [ "$#" -gt 3 ]; then 
-    ./tester $1 hierarchy $1 --episodes $2 ${@:3}
+    ./tester $1 hierarchy $2 --episodes $3 ${@:4}
 else 
-    ./tester $1 hierarchy $1 --episodes $2
+    ./tester $1 hierarchy $2 --episodes $3
 fi
 
 python3 scripts/hierarchy_cov.py results
