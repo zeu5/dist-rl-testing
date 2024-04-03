@@ -14,6 +14,7 @@ func RootCommand() *cobra.Command {
 	cmd.AddCommand(
 		EtcdCommand(),
 		RSLCommand(),
+		CometBFTCommand(),
 	)
 
 	return cmd

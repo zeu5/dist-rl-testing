@@ -1,6 +1,7 @@
 package core
 
 import (
+	"context"
 	"errors"
 	"math/rand"
 	"sort"
@@ -114,7 +115,7 @@ func (c *ComposedPainter) Painter() func(n NState) Color {
 // A constructor to create new PEnvironments when needed for parallelism
 type PEnvironmentConstructor interface {
 	// Create a new PEnvironment
-	NewPEnvironment(int) PEnvironment
+	NewPEnvironment(context.Context, int) PEnvironment
 }
 
 type PEnvironmentConfig struct {
@@ -838,11 +839,11 @@ func defaultPartitionState(config *PEnvironmentConfig) *PartitionState {
 	return out
 }
 
-func (pc *partitionEnvironmentConstructor) NewEnvironment(instance int) Environment {
+func (pc *partitionEnvironmentConstructor) NewEnvironment(ctx context.Context, instance int) Environment {
 
 	return &partitionEnvironment{
 		config: pc.config,
-		pEnv:   pc.PEnvironmentConstructor.NewPEnvironment(instance),
+		pEnv:   pc.PEnvironmentConstructor.NewPEnvironment(ctx, instance),
 
 		rand:     rand.New(rand.NewSource(time.Now().UnixNano())),
 		curState: defaultPartitionState(pc.config),

@@ -1,6 +1,7 @@
 package rsl
 
 import (
+	"context"
 	"errors"
 	"strconv"
 
@@ -292,6 +293,6 @@ func NewRSLPartitionEnvConstructor(c RSLEnvConfig) *RSLPartitionEnvConstructor {
 	}
 }
 
-func (r *RSLPartitionEnvConstructor) NewPEnvironment(_ int) core.PEnvironment {
+func (r *RSLPartitionEnvConstructor) NewPEnvironment(_ context.Context, _ int) core.PEnvironment {
 	return NewRLSPartitionEnv(r.config)
 }

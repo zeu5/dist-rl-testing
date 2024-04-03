@@ -18,6 +18,7 @@ var (
 type experimentRunContext struct {
 	run       int
 	ctx       context.Context
+	cancel    context.CancelFunc
 	analyzers map[string]Analyzer
 
 	writer *util.ParallelOutput
@@ -269,28 +270,31 @@ func (w *parallelWorker) run(ctx context.Context, workCh <-chan *parallelWork, r
 
 // Run an experiment by constructing the experiment context, *Experiment
 func (w *parallelWorker) runWork(ctx context.Context, work *parallelWork) *parallelResult {
-	eCtx := &experimentRunContext{
+	eCtx, eCancel := context.WithCancel(ctx)
+	eRunCtx := &experimentRunContext{
 		run:       work.runNumber,
-		ctx:       ctx,
+		ctx:       eCtx,
+		cancel:    eCancel,
 		analyzers: make(map[string]Analyzer),
 		writer:    work.writer,
 		RunConfig: work.rConfig,
 	}
 
 	for name, aC := range work.comp.Analyzers {
-		eCtx.analyzers[name] = aC.NewAnalyzer(work.experiment.Name, w.id)
+		eRunCtx.analyzers[name] = aC.NewAnalyzer(work.experiment.Name, w.id)
 	}
 
 	// Construct the experiment
 	exp := &Experiment{
 		Name:        work.experiment.Name,
-		Environment: work.experiment.Environment.NewEnvironment(w.id),
+		Environment: work.experiment.Environment.NewEnvironment(eCtx, w.id),
 		Policy:      work.experiment.Policy.NewPolicy(),
 	}
 
 	// Run the experiment
-	result := exp.run(eCtx)
+	result := exp.run(eRunCtx)
 	work.wg.Done()
+	eCancel()
 
 	return &parallelResult{
 		experimentName: work.experiment.Name,

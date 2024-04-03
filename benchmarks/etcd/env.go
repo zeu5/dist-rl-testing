@@ -1,6 +1,7 @@
 package etcd
 
 import (
+	"context"
 	"fmt"
 	"io"
 	"log"
@@ -60,7 +61,7 @@ func NewPartitionEnvironmentConstructor(config RaftEnvironmentConfig) *RaftParti
 }
 
 // Creates a new environment
-func (r *RaftPartitionEnvConstructor) NewPEnvironment(_ int) core.PEnvironment {
+func (r *RaftPartitionEnvConstructor) NewPEnvironment(_ context.Context, _ int) core.PEnvironment {
 	return NewPartitionEnvironment(r.config)
 }
 

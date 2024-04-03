@@ -92,5 +92,5 @@ type StepContext struct {
 
 type EnvironmentConstructor interface {
 	// NewEnvironment creates a new environment with the given instance number.
-	NewEnvironment(int) Environment
+	NewEnvironment(context.Context, int) Environment
 }
