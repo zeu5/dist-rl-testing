@@ -36,18 +36,24 @@ func (a *PrintDebugAnalyzer) Analyze(ctx *core.EpisodeContext, trace *core.Trace
 		return
 	}
 	buf := new(bytes.Buffer)
+	buf.WriteString(traceToString(trace))
 
-	for i := 0; i < trace.Len(); i++ {
-		step := trace.Step(i)
-		buf.WriteString(fmt.Sprintf("Step %d\n%s\n", i, stepToString(step)))
-		buf.WriteString("\n")
-	}
 	fileName := fmt.Sprintf("%d_trace_%d.txt", ctx.Run, ctx.Episode)
 	if a.exp != "" {
 		fileName = fmt.Sprintf("%d_%s_trace_%d.txt", ctx.Run, a.exp, ctx.Episode)
 	}
 	file := path.Join(a.savePath, fileName)
 	os.WriteFile(file, buf.Bytes(), 0644)
+}
+
+func traceToString(trace *core.Trace) string {
+	out := ""
+	for i := 0; i < trace.Len(); i++ {
+		step := trace.Step(i)
+		out += fmt.Sprintf("Step %d\n%s\n", i, stepToString(step))
+		out += "\n"
+	}
+	return out
 }
 
 func stepToString(step *core.Step) string {

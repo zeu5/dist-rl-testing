@@ -148,7 +148,7 @@ func (r *CometNode) Create() {
 
 	ctx, cancel := context.WithCancel(context.Background())
 	r.process = exec.CommandContext(ctx, r.config.BinaryPath, serverArgs...)
-	r.process.Dir = r.config.WorkingDir
+	// r.process.Dir = r.config.WorkingDir
 
 	r.ctx = ctx
 	r.cancel = cancel
@@ -634,6 +634,7 @@ func (c *CometClusterConfig) Copy() *CometClusterConfig {
 		NumNodes:                c.NumNodes,
 		CometBinaryPath:         c.CometBinaryPath,
 		BaseInterceptListenPort: c.BaseInterceptListenPort,
+		BaseP2PPort:             c.BaseP2PPort,
 		BaseRPCPort:             c.BaseRPCPort,
 		InterceptServerPort:     c.InterceptServerPort,
 		BaseWorkingDir:          c.BaseWorkingDir,

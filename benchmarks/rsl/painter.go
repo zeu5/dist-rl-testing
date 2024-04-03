@@ -1,6 +1,11 @@
 package rsl
 
-import "github.com/zeu5/dist-rl-testing/core"
+import (
+	"fmt"
+	"strings"
+
+	"github.com/zeu5/dist-rl-testing/core"
+)
 
 func ColorState() core.KVPainter {
 	return wrapColor(func(ls LocalState) (string, interface{}) {
@@ -24,6 +29,12 @@ func ColorBallot() core.KVPainter {
 	})
 }
 
+func ColorPreparedBallot() core.KVPainter {
+	return wrapColor(func(ls LocalState) (string, interface{}) {
+		return "preparedBallot", ls.MaxPreparedBallot.Num
+	})
+}
+
 func ColorDecree() core.KVPainter {
 	return wrapColor(func(ls LocalState) (string, interface{}) {
 		return "decree", ls.MaxAcceptedProposal.Decree
@@ -38,7 +49,7 @@ func ColorDecided() core.KVPainter {
 
 func ColorLogLength() core.KVPainter {
 	return wrapColor(func(ls LocalState) (string, interface{}) {
-		return "logLength", ls.Log.NumDecided()
+		return "logLength", ls.Log.NumEntries()
 	})
 }
 
@@ -48,4 +59,14 @@ func wrapColor(f func(LocalState) (string, interface{})) core.KVPainter {
 		return f(ns)
 	}
 
+}
+
+func ColorLog() core.KVPainter {
+	return wrapColor(func(ls LocalState) (string, interface{}) {
+		logValues := make([]string, len(ls.Log.entries))
+		for i, e := range ls.Log.entries {
+			logValues[i] = fmt.Sprintf("{%t,%d,%d}", e.Accepted, e.Ballot.Num, e.Decree)
+		}
+		return "log", "[" + strings.Join(logValues, ",") + "]"
+	})
 }

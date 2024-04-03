@@ -857,3 +857,13 @@ func (c *PEnvironmentConfig) GetConstructor(pec PEnvironmentConstructor) Environ
 		config:                  c,
 	}
 }
+
+func PendingRequestsAtLeast(min int) func(State) bool {
+	return func(s State) bool {
+		ps, ok := s.(*PartitionState)
+		if !ok {
+			return false
+		}
+		return len(ps.Requests) >= min
+	}
+}

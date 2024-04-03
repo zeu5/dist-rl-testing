@@ -47,6 +47,10 @@ func (l *Log) NumDecided() int {
 	return len(l.Decided)
 }
 
+func (l *Log) NumEntries() int {
+	return len(l.entries)
+}
+
 func (l *Log) Copy() *Log {
 	out := NewLog()
 	for _, e := range l.entries {

@@ -13,12 +13,14 @@ type Step struct {
 type Trace struct {
 	mtx   *sync.Mutex
 	steps []*Step
+	err   error
 }
 
 func NewTrace() *Trace {
 	return &Trace{
 		steps: make([]*Step, 0),
 		mtx:   new(sync.Mutex),
+		err:   nil,
 	}
 }
 
@@ -44,4 +46,17 @@ func (t *Trace) Last() *Step {
 	t.mtx.Lock()
 	defer t.mtx.Unlock()
 	return t.steps[len(t.steps)-1]
+}
+
+func (t *Trace) SetError(err error) {
+	t.mtx.Lock()
+	defer t.mtx.Unlock()
+
+	t.err = err
+}
+
+func (t *Trace) Error() error {
+	t.mtx.Lock()
+	defer t.mtx.Unlock()
+	return t.err
 }

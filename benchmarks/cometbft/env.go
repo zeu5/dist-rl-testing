@@ -5,11 +5,13 @@ import (
 	"errors"
 	"fmt"
 	"math/rand"
+	"path"
 	"strconv"
 	"strings"
 	"time"
 
 	"github.com/zeu5/dist-rl-testing/core"
+	"github.com/zeu5/dist-rl-testing/util"
 )
 
 type CometEnvConstructor struct {
@@ -28,8 +30,9 @@ func (c *CometEnvConstructor) NewPEnvironment(ctx context.Context, instance int)
 	cfg := c.cfg.Copy()
 	cfg.BaseInterceptListenPort = cfg.BaseInterceptListenPort + 10*instance
 	cfg.BaseP2PPort = cfg.BaseP2PPort + 10*instance
-	cfg.BaseRPCPort = cfg.BaseP2PPort + 10*instance
+	cfg.BaseRPCPort = cfg.BaseRPCPort + 10*instance
 	cfg.InterceptServerPort = cfg.InterceptServerPort + instance
+	cfg.BaseWorkingDir = path.Join(cfg.BaseWorkingDir, strconv.Itoa(instance))
 
 	return NewCometEnv(ctx, cfg)
 }
@@ -129,14 +132,18 @@ func (r *CometEnv) Cleanup() {
 func (r *CometEnv) Reset() (core.PState, error) {
 	if r.cluster != nil {
 		if err := r.cluster.Destroy(); err != nil {
-			return nil, err
+			return nil, util.NewLogError(err, r.cluster.GetLogs())
 		}
 	}
 	r.network.Reset()
-	r.cluster, _ = NewCometCluster(r.cfg)
+	cluster, err := NewCometCluster(r.cfg)
+	if err != nil {
+		return nil, err
+	}
+	r.cluster = cluster
 	if err := r.cluster.Start(); err != nil {
 		r.cluster.Destroy()
-		return nil, err
+		return nil, util.NewLogError(err, r.cluster.GetLogs())
 	}
 
 	r.network.WaitForNodes(r.cfg.NumNodes)
@@ -194,7 +201,7 @@ func (r *CometEnv) DeliverMessages(messages []core.Message, epCtx *core.StepCont
 	// too many errors delivering messages
 	if len(errs) > 0 && len(errs) >= len(messages)/10 {
 		epCtx.AdditionalInfo["logs"] = r.cluster.GetLogs()
-		return nil, fmt.Errorf("too many errors sending messages: %s", strings.Join(errs, "\n"))
+		return nil, util.NewLogError(fmt.Errorf("too many errors sending messages: %s", strings.Join(errs, "\n")), r.cluster.GetLogs())
 	}
 	newState.PendingMessages = r.network.GetAllMessages()
 	r.curState = newState
@@ -275,7 +282,7 @@ func (r *CometEnv) StartNode(nodeID int, epCtx *core.StepContext) (core.PState, 
 func NewCometEnv(ctx context.Context, cfg *CometClusterConfig) *CometEnv {
 	network := NewInterceptNetwork(ctx, cfg.InterceptServerPort)
 	network.Start()
-	return &CometEnv{
+	env := &CometEnv{
 		ctx:     ctx,
 		cfg:     cfg,
 		cluster: nil,
@@ -283,4 +290,11 @@ func NewCometEnv(ctx context.Context, cfg *CometClusterConfig) *CometEnv {
 
 		curState: nil,
 	}
+
+	go func(ctx context.Context, env *CometEnv) {
+		<-ctx.Done()
+		env.Cleanup()
+	}(ctx, env)
+
+	return env
 }

@@ -8,8 +8,6 @@ package rsl
 
 import (
 	"bytes"
-	"crypto/sha256"
-	"encoding/hex"
 	"math"
 	"math/rand"
 	"time"
@@ -38,8 +36,7 @@ func (c Command) Copy() Command {
 }
 
 func (c Command) Hash() string {
-	hash := sha256.Sum256(c.Data)
-	return hex.EncodeToString(hash[:])
+	return string(c.Data)
 }
 
 func (c Command) Eq(other Command) bool {

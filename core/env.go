@@ -60,6 +60,7 @@ func NewEpisodeContext(ctx context.Context) *EpisodeContext {
 
 func (e *EpisodeContext) Error(err error) {
 	e.err = err
+	e.Trace.SetError(err)
 	e.cancelFunc()
 }
 

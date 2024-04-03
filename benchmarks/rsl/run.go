@@ -18,6 +18,7 @@ func PreparePureCoverageComparison(flags *common.Flags) *core.ParallelComparison
 		ColorDecided(),
 		ColorBoundedBallot(5),
 		ColorLogLength(),
+		ColorPreparedBallot(),
 	}
 
 	rslEnvConstructor := NewRSLPartitionEnvConstructor(RSLEnvConfig{
@@ -51,6 +52,8 @@ func PreparePureCoverageComparison(flags *common.Flags) *core.ParallelComparison
 	if flags.Debug {
 		cmp.AddAnalysis("Debug", analysis.NewPrintDebugAnalyzerConstructor(flags.SavePath, flags.Episodes-10), analysis.NewNoOpComparatorConstructor())
 	}
+	cmp.AddAnalysis("Bugs", analysis.NewBugAnalyzerConstructor(flags.SavePath, InconsistentLogs, MultiplePrimaries), analysis.NewNoOpComparatorConstructor())
+	cmp.AddAnalysis("Errors", analysis.NewErrorAnalyzerConstructor(flags.SavePath), analysis.NewNoOpComparatorConstructor())
 	cmp.AddAnalysis("Coverage", analysis.NewColorAnalyzerConstructor(painter), analysis.NewColorComparatorConstructor(flags.SavePath))
 
 	cmp.AddExperiment(&core.ParallelExperiment{
@@ -86,7 +89,8 @@ func PrepareHierarchyComparison(flags *common.Flags, hSet string) (*core.Paralle
 		ColorDecree(),
 		ColorDecided(),
 		ColorBoundedBallot(5),
-		ColorLogLength(),
+		ColorLog(),
+		ColorPreparedBallot(),
 	}
 
 	rslEnvConstructor := NewRSLPartitionEnvConstructor(RSLEnvConfig{
@@ -136,6 +140,8 @@ func PrepareHierarchyComparison(flags *common.Flags, hSet string) (*core.Paralle
 		})
 	}
 
+	cmp.AddAnalysis("Bugs", analysis.NewBugAnalyzerConstructor(flags.SavePath, InconsistentLogs, MultiplePrimaries), analysis.NewNoOpComparatorConstructor())
+	cmp.AddAnalysis("Errors", analysis.NewErrorAnalyzerConstructor(flags.SavePath), analysis.NewNoOpComparatorConstructor())
 	cmp.AddExperiment(&core.ParallelExperiment{
 		Name:        "Random",
 		Environment: partitionEnvConstructor,

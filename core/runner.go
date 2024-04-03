@@ -79,14 +79,14 @@ EpisodeLoop:
 
 			state, err := e.Environment.Reset()
 			if err != nil {
-				eCtx.Error(err)
+				eCtx.Error(fmt.Errorf("error resetting the env: %s", err))
 				return
 			}
 			e.Policy.ResetEpisode(eCtx)
 			for step := 0; step < ctx.Horizon; step++ {
 				select {
 				case <-eCtx.Context.Done():
-					eCtx.Error(eCtx.Context.Err())
+					eCtx.Error(fmt.Errorf("context error: %s", eCtx.Context.Err()))
 					return
 				default:
 				}
@@ -99,7 +99,7 @@ EpisodeLoop:
 				)
 				nextState, err := e.Environment.Step(action, sCtx)
 				if err != nil {
-					eCtx.Error(err)
+					eCtx.Error(fmt.Errorf("error executing step %d: %s", step, err))
 					return
 				}
 				e.Policy.UpdateStep(sCtx, state, action, nextState)

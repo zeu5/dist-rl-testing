@@ -7,6 +7,8 @@ import sys
 def plot_cov(dirpath):
     runs = []
     for run in os.listdir(dirpath):
+        if not run.isdigit():
+            continue
         if os.path.isdir(os.path.join(dirpath, run)):
             with open(os.path.join(dirpath, run, "color_analyzer.json"), 'r') as f:
                 runs.append(json.load(f))
@@ -14,26 +16,25 @@ def plot_cov(dirpath):
     fig, ax = plt.subplots()
 
     data = {}
-    timesteps = []
     for r in runs:
         for key in r:
             if key not in data:
                 data[key] = []
             data[key].append(r[key]["UniqueStates"])
-            if len(timesteps) == 0:
-                timesteps = r[key]["Timesteps"]
 
 
     for key in data:
         min_len = min([len(run) for run in data[key]])
         filtered_data = [run[:min_len] for run in data[key]]
+        timesteps = runs[0][key]["Timesteps"][:min_len]
+
         mean = np.mean(filtered_data, axis=0)
         std = np.std(filtered_data, axis=0)
         ax.plot(timesteps, mean, label=key)
         ax.fill_between(timesteps, mean+std, mean-std, alpha=0.2)
     
     ax.legend()
-    plt.savefig("results/coverage.png")
+    plt.savefig("{}/coverage.png".format(dirpath))
 
     for key in data:
         min_len = min([len(run) for run in data[key]])

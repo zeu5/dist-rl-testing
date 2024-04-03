@@ -262,3 +262,16 @@ func NodeInPreparedBallot(node, ballot int) policies.PredicateFunc {
 		return false
 	})
 }
+
+func EntryInBallot(ballot int) policies.PredicateFunc {
+	return wrapPredicate(func(ps *core.PartitionState) bool {
+		for _, rs := range ps.NodeStates {
+			for _, entry := range rs.(LocalState).Log.entries {
+				if entry.Ballot.Num == ballot {
+					return true
+				}
+			}
+		}
+		return false
+	})
+}

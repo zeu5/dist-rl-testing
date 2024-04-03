@@ -60,6 +60,7 @@ func PreparePureCoverageComparison(flags *common.Flags) (*core.ParallelCompariso
 	if flags.Debug {
 		cmp.AddAnalysis("Debug", analysis.NewPrintDebugAnalyzerConstructor(flags.SavePath, flags.Episodes-10), analysis.NewNoOpComparatorConstructor())
 	}
+	cmp.AddAnalysis("Errors", analysis.NewErrorAnalyzerConstructor(flags.SavePath), analysis.NewNoOpComparatorConstructor())
 	cmp.AddAnalysis("Coverage", analysis.NewColorAnalyzerConstructor(painter), analysis.NewColorComparatorConstructor(flags.SavePath))
 
 	cmp.AddExperiment(&core.ParallelExperiment{

@@ -27,9 +27,9 @@ func getHierarchySet(hSet string) []common.HierarchySet {
 	switch hSet {
 	case "set1":
 		hierarchies = []string{
-			"OneInTerm4", "AllInTerm3", "TermDiff2",
+			"OneInTerm4", "AllInTerm5", "TermDiff2",
 			"MinCommit2", "LeaderInTerm4", "OneLeaderOneCandidate",
-			"AtLeastOneCommitInTerm2", "LogGap2", "CommitGap2",
+			"AtLeastOneCommitInTerm2", "LogGap2", "LogCommitGap3",
 		}
 	default:
 		return []common.HierarchySet{}
@@ -48,8 +48,8 @@ func GetHierarchy(name string) []policies.Predicate {
 	switch name {
 	case "OneInTerm4":
 		return oneInTerm4()
-	case "AllInTerm3":
-		return allInTerm3()
+	case "AllInTerm5":
+		return allInTerm5()
 	case "TermDiff2":
 		return termDiff2()
 	case "MinCommit2":
@@ -62,8 +62,8 @@ func GetHierarchy(name string) []policies.Predicate {
 		return atleastOneCommitInTerm2()
 	case "LogGap2":
 		return logGap2()
-	case "CommitGap2":
-		return commitGap2()
+	case "LogCommitGap3":
+		return commitGap3()
 	}
 	return []policies.Predicate{}
 }
@@ -76,9 +76,11 @@ func oneInTerm4() []policies.Predicate {
 	}
 }
 
-func allInTerm3() []policies.Predicate {
+func allInTerm5() []policies.Predicate {
 	return []policies.Predicate{
-		{Name: "AllInTerm3", Check: AllInTerm(3)},
+		{Name: "AnyInTerm3", Check: AnyInTermAtLeast(3)},
+		{Name: "AnyInTerm4", Check: AnyInTermAtLeast(5)},
+		{Name: "AllInTerm5", Check: AllInTermAtLeast(5)},
 	}
 }
 
@@ -90,12 +92,15 @@ func termDiff2() []policies.Predicate {
 
 func minCommit2() []policies.Predicate {
 	return []policies.Predicate{
+		{Name: "MinCommit1", Check: AnyWithCommit(1)},
+		{Name: "MinCommit1WithLeader", Check: AnyWithCommit(1).And(InState(raft.StateLeader))},
 		{Name: "MinCommit2", Check: AnyWithCommit(2)},
 	}
 }
 
 func leaderInTerm4() []policies.Predicate {
 	return []policies.Predicate{
+		{Name: "AnyInTerm3", Check: AnyInTerm(3)},
 		{Name: "AllInTerm3", Check: AllInTerm(3)},
 		{Name: "LeaderInTerm4", Check: LeaderElectedPredicateStateWithTerm(4)},
 	}
@@ -103,24 +108,32 @@ func leaderInTerm4() []policies.Predicate {
 
 func oneLeaderOneCandidate() []policies.Predicate {
 	return []policies.Predicate{
+		{Name: "Leader", Check: InState(raft.StateLeader)},
+		{Name: "TermDiff1", Check: TermDiff(1)},
 		{Name: "OneLeaderOneCandidate", Check: InState(raft.StateLeader).And(InState(raft.StateCandidate))},
 	}
 }
 
 func atleastOneCommitInTerm2() []policies.Predicate {
 	return []policies.Predicate{
+		{Name: "AnyInTerm2", Check: AnyInTerm(2)},
+		{Name: "LeaderInTerm2", Check: LeaderElectedPredicateStateWithTerm(2)},
 		{Name: "AtLeastOneCommitInTerm2", Check: AtLeastOneLogNotEmptyTerm(2)},
 	}
 }
 
 func logGap2() []policies.Predicate {
 	return []policies.Predicate{
-		{Name: "MinLogDiff2", Check: MinLogLengthDiff(2)},
+		{Name: "LogDiff1", Check: MinLogLengthDiff(1)},
+		{Name: "LogDiff2", Check: MinLogLengthDiff(2)},
 	}
 }
 
-func commitGap2() []policies.Predicate {
+func commitGap3() []policies.Predicate {
 	return []policies.Predicate{
-		{Name: "CommitGap2", Check: MinCommitGap(2)},
+		{Name: "LogDiff1", Check: MinLogLengthDiff(1)},
+		{Name: "LogDiff2", Check: MinLogLengthDiff(2)},
+		{Name: "LogDiff3", Check: MinLogLengthDiff(3)},
+		{Name: "LogCommitGap3", Check: MinLogCommittedLengthDiff(3)},
 	}
 }

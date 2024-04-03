@@ -39,6 +39,30 @@ func wrapPredicate(pred func(*core.PartitionState) bool) func(core.State) bool {
 	}
 }
 
+func AllInTermAtLeast(term uint64) policies.PredicateFunc {
+	return wrapPredicate(func(ps *core.PartitionState) bool {
+		for _, state := range ps.NodeStates {
+			rs := state.(RaftNodeState).State
+			if rs.Term != 0 && rs.Term < term {
+				return false
+			}
+		}
+		return true
+	})
+}
+
+func AnyInTermAtLeast(term uint64) policies.PredicateFunc {
+	return wrapPredicate(func(ps *core.PartitionState) bool {
+		for _, state := range ps.NodeStates {
+			rs := state.(RaftNodeState).State
+			if rs.Term != 0 && rs.Term >= term {
+				return true
+			}
+		}
+		return false
+	})
+}
+
 func AnyInTerm(term uint64) policies.PredicateFunc {
 	return wrapPredicate(func(ps *core.PartitionState) bool {
 		for _, state := range ps.NodeStates {
@@ -84,6 +108,9 @@ func TermDiff(diff int) policies.PredicateFunc {
 
 		for _, state := range ps.NodeStates {
 			rState := state.(RaftNodeState).State
+			if rState.Term == 0 {
+				continue
+			}
 			if rState.Term > maxTerm {
 				maxTerm = rState.Term
 			}
@@ -538,7 +565,26 @@ func MinLogLengthDiff(diff int) policies.PredicateFunc {
 				minLogLength = l
 			}
 		}
-		return maxLogLength-minLogLength >= diff
+		return maxLogLength-minLogLength >= diff && minLogLength > 0 && maxLogLength > 0
+	})
+}
+
+func MinLogCommittedLengthDiff(diff int) policies.PredicateFunc {
+	return wrapPredicate(func(ps *core.PartitionState) bool {
+		minLogLength := math.MaxInt
+		maxLogLength := math.MinInt
+
+		for _, rs := range ps.NodeStates {
+			nrs := rs.(RaftNodeState)
+			l := len(committedLog(nrs.Log, nrs.State))
+			if l > maxLogLength {
+				maxLogLength = l
+			}
+			if l < minLogLength {
+				minLogLength = l
+			}
+		}
+		return maxLogLength-minLogLength >= diff && minLogLength > 0 && maxLogLength > 0
 	})
 }
 
@@ -557,6 +603,34 @@ func MinCommitGap(diff int) policies.PredicateFunc {
 			}
 		}
 		return maxCommit-minCommit >= diff
+	})
+}
+
+func TermDiffWithLeader(diff int) policies.PredicateFunc {
+	return wrapPredicate(func(ps *core.PartitionState) bool {
+		maxTerm := uint64(0)
+		minTerm := uint64(math.MaxUint64)
+		minTermNode := 0
+
+		for node, state := range ps.NodeStates {
+			rState := state.(RaftNodeState).State
+			if rState.Term == 0 {
+				continue
+			}
+			if rState.Term > maxTerm {
+				maxTerm = rState.Term
+			}
+			if rState.Term < minTerm {
+				minTerm = rState.Term
+				minTermNode = node
+			}
+		}
+
+		if maxTerm >= minTerm && minTerm > 0 && maxTerm-minTerm > uint64(diff) {
+			state := ps.NodeStates[minTermNode]
+			return state.(RaftNodeState).State.RaftState == raft.StateLeader
+		}
+		return false
 	})
 }
 

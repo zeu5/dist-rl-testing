@@ -4,6 +4,7 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
+	"fmt"
 )
 
 func JsonHash(s interface{}) string {
@@ -46,4 +47,22 @@ func CopyStringMap(m map[string]interface{}) map[string]interface{} {
 		out[k] = v
 	}
 	return out
+}
+
+type LogError struct {
+	Logs string
+	Err  error
+}
+
+var _ error = &LogError{}
+
+func NewLogError(err error, logs string) *LogError {
+	return &LogError{
+		Err:  err,
+		Logs: logs,
+	}
+}
+
+func (c *LogError) Error() string {
+	return fmt.Sprintf("Error: %s\nLogs:\n%s", c.Err, c.Logs)
 }

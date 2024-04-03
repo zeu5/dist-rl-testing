@@ -9,6 +9,8 @@ from pathlib import Path
 def plot_cov(dirpath):
     data = {}
     for run in os.listdir(dirpath):
+        if not run.isdigit():
+            continue
         if os.path.isdir(os.path.join(dirpath, run)):
             run_dir = os.path.join(dirpath, run)
             predicate_files = {}
@@ -55,10 +57,10 @@ def plot_cov(dirpath):
         
         ax.legend()
         ax.set_title("Predicate {} analysis".format(pred))
-        plt.savefig("results/{}_coverage.png".format(pred))
+        plt.savefig("{}/{}_coverage.png".format(dirpath, pred))
     
     df = pd.DataFrame(avg_data, index=avg_data["Predicate"], columns=["PredHRL", "BonusMax", "NegRLVisits", "Random"])
-    df.to_csv("results/avg_coverage.csv")
+    df.to_csv("{}/avg_coverage.csv".format(dirpath))
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:
