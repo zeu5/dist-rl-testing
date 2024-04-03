@@ -208,6 +208,43 @@ func NodeNumDecided(node, d int) policies.PredicateFunc {
 	})
 }
 
+func AnyDecree(decree int) policies.PredicateFunc {
+	return wrapPredicate(func(ps *core.PartitionState) bool {
+		for _, rs := range ps.NodeStates {
+			if rs.(LocalState).MaxAcceptedProposal.Decree == decree {
+				return true
+			}
+		}
+		return false
+	})
+}
+
+func BallotDiff(diff int) policies.PredicateFunc {
+	return wrapPredicate(func(ps *core.PartitionState) bool {
+		ballotsMap := make(map[int]bool)
+		for _, rs := range ps.NodeStates {
+			ls := rs.(LocalState)
+			ballotsMap[ls.MaxAcceptedProposal.Ballot.Num] = true
+		}
+		ballots := make([]int, 0)
+		for b := range ballotsMap {
+			ballots = append(ballots, b)
+		}
+
+		maxBallot := ballots[0]
+		minBallot := ballots[0]
+		for _, b := range ballots {
+			if b > maxBallot {
+				maxBallot = b
+			}
+			if b < minBallot {
+				minBallot = b
+			}
+		}
+		return maxBallot-minBallot >= diff && maxBallot != 0 && minBallot != 0
+	})
+}
+
 func AnyInBallot(ballot int) policies.PredicateFunc {
 	return wrapPredicate(func(ps *core.PartitionState) bool {
 		for _, rs := range ps.NodeStates {

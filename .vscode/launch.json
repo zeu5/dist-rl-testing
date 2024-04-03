@@ -28,15 +28,15 @@
             ]
         },
         {
-            "name": "Run cometbft coverage",
+            "name": "Run rsl coverage",
             "type": "go",
             "request": "launch",
             "mode": "auto",
             "program": "${workspaceFolder}",
             "args": [
-                "cometbft",
+                "rsl",
                 "cov",
-                "--episodes", "1"
+                "--episodes", "10000"
             ]
         },
         {

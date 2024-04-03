@@ -65,7 +65,7 @@ func ColorLog() core.KVPainter {
 	return wrapColor(func(ls LocalState) (string, interface{}) {
 		logValues := make([]string, len(ls.Log.entries))
 		for i, e := range ls.Log.entries {
-			logValues[i] = fmt.Sprintf("{%t,%d,%d}", e.Accepted, e.Ballot.Num, e.Decree)
+			logValues[i] = fmt.Sprintf("{%t,%d,%d,%s}", e.Accepted, e.Ballot.Num, e.Decree, string(e.Command.Data))
 		}
 		return "log", "[" + strings.Join(logValues, ",") + "]"
 	})

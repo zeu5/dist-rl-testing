@@ -27,7 +27,8 @@ func getHierarchySet(hSet string) []common.HierarchySet {
 	case "set1":
 		hierarchies = []string{
 			"AnyBallot3", "AnyDecided3", "AllBallot3",
-			"EntryBallot2", "PrimaryInBallot2",
+			"EntryBallot2", "PrimaryInBallot2", "AnyDecree2",
+			"BallotDiff2",
 		}
 	default:
 		return []common.HierarchySet{}
@@ -46,6 +47,8 @@ func GetHierarchy(name string) []policies.Predicate {
 	switch name {
 	case "AnyBallot3":
 		return anyBallot3()
+	case "AnyDecree2":
+		return anyDecree2()
 	case "AnyDecided3":
 		return anyDecided3()
 	case "AllBallot3":
@@ -54,6 +57,8 @@ func GetHierarchy(name string) []policies.Predicate {
 		return entryBallot2()
 	case "PrimaryInBallot2":
 		return primaryInBallot2()
+	case "BallotDiff2":
+		return ballotDiff2()
 	}
 	return []policies.Predicate{}
 }
@@ -61,6 +66,12 @@ func GetHierarchy(name string) []policies.Predicate {
 func anyBallot3() []policies.Predicate {
 	return []policies.Predicate{
 		{Name: "AnyBallot3", Check: AnyInBallot(3)},
+	}
+}
+
+func anyDecree2() []policies.Predicate {
+	return []policies.Predicate{
+		{Name: "AnyDecree2", Check: AnyDecree(2)},
 	}
 }
 
@@ -78,7 +89,6 @@ func anyDecided3() []policies.Predicate {
 
 func entryBallot2() []policies.Predicate {
 	return []policies.Predicate{
-		{Name: "PrimaryInBallot2", Check: InStateAndBallot(StateStablePrimary, 2)},
 		{Name: "EntryBallot2", Check: EntryInBallot(2)},
 	}
 }
@@ -87,5 +97,11 @@ func primaryInBallot2() []policies.Predicate {
 	return []policies.Predicate{
 		{Name: "AnyInBallot2", Check: AnyInBallot(2)},
 		{Name: "PrimaryInBallot2", Check: InStateAndBallot(StateStablePrimary, 2)},
+	}
+}
+
+func ballotDiff2() []policies.Predicate {
+	return []policies.Predicate{
+		{Name: "BallotDiff2", Check: BallotDiff(2)},
 	}
 }

@@ -17,7 +17,7 @@ func PreparePureCoverageComparison(flags *common.Flags) *core.ParallelComparison
 		ColorDecree(),
 		ColorDecided(),
 		ColorBoundedBallot(5),
-		ColorLogLength(),
+		ColorLog(),
 		ColorPreparedBallot(),
 	}
 
