@@ -114,9 +114,13 @@ func (p *PredicateAnalyzer) Analyze(eCtx *core.EpisodeContext, trace *core.Trace
 			}
 
 			// Update final states
-			colorMap := make(map[int]string)
-			for node, ns := range state.(*core.PartitionState).NodeStates {
-				colorMap[node] = p.painter(ns).Hash()
+			colorMap := make(map[string]int)
+			for _, ns := range state.(*core.PartitionState).NodeStates {
+				color := p.painter(ns).Hash()
+				if _, ok := colorMap[color]; !ok {
+					colorMap[color] = 0
+				}
+				colorMap[color]++
 			}
 			stateHash := util.JsonHash(colorMap)
 			if _, ok := p.finalStates[stateHash]; !ok {

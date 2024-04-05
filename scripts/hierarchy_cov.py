@@ -5,6 +5,7 @@ import os
 import json
 import sys
 from pathlib import Path
+from scipy.stats import mannwhitneyu
 
 def plot_cov(dirpath):
     data = {}
@@ -61,6 +62,29 @@ def plot_cov(dirpath):
     
     df = pd.DataFrame(avg_data, index=avg_data["Predicate"], columns=["PredHRL", "BonusMax", "NegRLVisits", "Random"])
     df.to_csv("{}/avg_coverage.csv".format(dirpath))
+
+    stat_test_data = {
+        "Predicate": [],
+        "BonusMax": [],
+        "NegRLVisits": [],
+        "Random": []
+    }
+
+    for pred, pred_runs in data.items():
+        stat_test_data["Predicate"].append(pred)
+
+        predhrl_final_cov = [pred_runs[i]["PredHRL_"+pred]["FinalPredicateStates"][-1] for i in range(len(pred_runs))]
+
+        for key in ["BonusMax", "NegRLVisits", "Random"]:
+            final_cov = [pred_runs[i][key]["FinalPredicateStates"][-1] for i in range(len(pred_runs))]
+
+            # mannwhitneyu test
+            stat, p = mannwhitneyu(predhrl_final_cov, final_cov, alternative="greater")
+
+            stat_test_data[key].append((stat, p))
+
+    df = pd.DataFrame(stat_test_data, index=stat_test_data["Predicate"], columns=["BonusMax", "NegRLVisits", "Random"])
+    df.to_csv("{}/stat_test_coverage.csv".format(dirpath))
 
 if __name__ == "__main__":
     if len(sys.argv) != 2:

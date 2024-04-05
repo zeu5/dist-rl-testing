@@ -48,9 +48,13 @@ func (c *ColorAnalyzer) Analyze(eCtx *core.EpisodeContext, trace *core.Trace) {
 		step := trace.Step(i)
 		ps := step.State.(*core.PartitionState)
 
-		colorMap := make(map[int]string)
-		for node, ns := range ps.NodeStates {
-			colorMap[node] = c.painter(ns).Hash()
+		colorMap := make(map[string]int)
+		for _, ns := range ps.NodeStates {
+			col := c.painter(ns).Hash()
+			if _, ok := colorMap[col]; !ok {
+				colorMap[col] = 0
+			}
+			colorMap[col]++
 		}
 		stateHash := util.JsonHash(colorMap)
 
