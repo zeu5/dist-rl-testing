@@ -28,7 +28,7 @@ func getHierarchySet(hSet string) []common.HierarchySet {
 		hierarchies = []string{
 			"AnyBallot3", "AnyDecided3", "AllBallot3",
 			"EntryBallot2", "PrimaryInBallot2", "AnyDecree2",
-			"BallotDiff2",
+			"BallotDiff2", "DecidedDiff3",
 		}
 	default:
 		return []common.HierarchySet{}
@@ -59,6 +59,8 @@ func GetHierarchy(name string) []policies.Predicate {
 		return primaryInBallot2()
 	case "BallotDiff2":
 		return ballotDiff2()
+	case "DecidedDiff3":
+		return decidedDiff3()
 	}
 	return []policies.Predicate{}
 }
@@ -103,5 +105,13 @@ func primaryInBallot2() []policies.Predicate {
 func ballotDiff2() []policies.Predicate {
 	return []policies.Predicate{
 		{Name: "BallotDiff2", Check: BallotDiff(2)},
+	}
+}
+
+func decidedDiff3() []policies.Predicate {
+	return []policies.Predicate{
+		{Name: "DecidedDiff1", Check: DecidedDiff(1)},
+		{Name: "DecidedDiff2", Check: DecidedDiff(2)},
+		{Name: "DecidedDiff3", Check: DecidedDiff(3)},
 	}
 }

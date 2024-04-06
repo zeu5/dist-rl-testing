@@ -1,6 +1,8 @@
 package rsl
 
 import (
+	"math"
+
 	"github.com/zeu5/dist-rl-testing/core"
 	"github.com/zeu5/dist-rl-testing/policies"
 )
@@ -310,5 +312,25 @@ func EntryInBallot(ballot int) policies.PredicateFunc {
 			}
 		}
 		return false
+	})
+}
+
+func DecidedDiff(diff int) policies.PredicateFunc {
+	return wrapPredicate(func(ps *core.PartitionState) bool {
+		maxDecided := math.MinInt
+		minDecided := math.MaxInt
+		for _, rs := range ps.NodeStates {
+			d := rs.(LocalState).Decided
+			if d == 0 {
+				continue
+			}
+			if d > maxDecided {
+				maxDecided = d
+			}
+			if d < minDecided {
+				minDecided = d
+			}
+		}
+		return minDecided > 0 && maxDecided > minDecided && maxDecided-minDecided >= diff
 	})
 }

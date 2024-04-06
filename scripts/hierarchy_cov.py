@@ -40,11 +40,21 @@ def plot_cov(dirpath):
         avg_data["Predicate"].append(pred)
 
         for key in ["PredHRL_"+pred, "Random", "BonusMax", "NegRLVisits"]:
-            min_len = min([len(pred_runs[i][key]["FinalPredicateStates"]) for i in range(len(pred_runs))])
-            filtered_runs = [pred_runs[i][key]["FinalPredicateStates"][:min_len] for i in range(len(pred_runs))]
-            
-            timesteps = pred_runs[0][key]["FinalPredicateTimesteps"][:min_len]
-
+            min_len = len(pred_runs[0][key]["FinalPredicateStates"])
+            for i in range(len(pred_runs)):
+                if key not in pred_runs[i]:
+                    continue
+                l = len(pred_runs[i][key]["FinalPredicateStates"])
+                if l < min_len:
+                    min_len = l
+            filtered_runs = []
+            timesteps = []
+            for i in range(len(pred_runs)):
+                if key not in pred_runs[i]:
+                    continue
+                filtered_runs.append(pred_runs[i][key]["FinalPredicateStates"][:min_len])
+                if len(timesteps) == 0:
+                    timesteps = pred_runs[i][key]["FinalPredicateTimesteps"][:min_len]
 
             mean = np.mean(filtered_runs, axis=0)
             std = np.std(filtered_runs, axis=0)
@@ -73,10 +83,18 @@ def plot_cov(dirpath):
     for pred, pred_runs in data.items():
         stat_test_data["Predicate"].append(pred)
 
-        predhrl_final_cov = [pred_runs[i]["PredHRL_"+pred]["FinalPredicateStates"][-1] for i in range(len(pred_runs))]
+        predhrl_final_cov = []
+        for i in range(len(pred_runs)):
+            if "PredHRL_"+pred not in pred_runs[i]:
+                continue
+            predhrl_final_cov.append(pred_runs[i]["PredHRL_"+pred]["FinalPredicateStates"][-1])
 
         for key in ["BonusMax", "NegRLVisits", "Random"]:
-            final_cov = [pred_runs[i][key]["FinalPredicateStates"][-1] for i in range(len(pred_runs))]
+            final_cov = []
+            for i in range(len(pred_runs)):
+                if key not in pred_runs[i]:
+                    continue
+                final_cov.append(pred_runs[i][key]["FinalPredicateStates"][-1])
 
             # mannwhitneyu test
             stat, p = mannwhitneyu(predhrl_final_cov, final_cov, alternative="greater")

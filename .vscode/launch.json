@@ -46,6 +46,14 @@
             "program": "${file}",
             "console": "integratedTerminal",
             "args": ["results"]
+        },
+        {
+            "name": "Plot hierarchy coverage python file",
+            "type": "debugpy",
+            "request": "launch",
+            "program": "${file}",
+            "console": "integratedTerminal",
+            "args": ["results"]
         }
     ]
 }
