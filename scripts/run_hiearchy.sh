@@ -20,4 +20,6 @@ else
     ./tester $1 hierarchy $2 --episodes $3
 fi
 
+source ven/bin/activate
 python3 scripts/hierarchy_cov.py results
+deactivate

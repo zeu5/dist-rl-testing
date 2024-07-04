@@ -20,4 +20,6 @@ else
     ./tester $1 cov --episodes $2
 fi
 
+source venv/bin/activate
 python3 scripts/pure_cov.py results
+deactivate
