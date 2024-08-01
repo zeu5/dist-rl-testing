@@ -23,3 +23,5 @@ go.work
 .nfs*
 results*
 venv
+.DS_Store
+tester
