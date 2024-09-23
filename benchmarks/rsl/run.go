@@ -71,6 +71,18 @@ func PreparePureCoverageComparison(flags *common.Flags) *core.ParallelComparison
 		Environment: partitionEnvConstructor,
 		Policy:      policies.NewSoftMaxNegFreqPolicyConstructor(0.3, 0.7, 1),
 	})
+	cmp.AddExperiment(&core.ParallelExperiment{
+		Name:        "UCBZero",
+		Environment: partitionEnvConstructor,
+		Policy: policies.NewUCBZeroPolicyConstructor(policies.UCBZeroParams{
+			StateSize:   10000,
+			ActionsSize: 100,
+			Horizon:     flags.Horizon,
+			Episodes:    flags.Episodes,
+			Epsilon:     0.05,
+			Constant:    0.5,
+		}),
+	})
 	return cmp
 }
 

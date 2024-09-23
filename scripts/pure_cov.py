@@ -9,6 +9,7 @@ import pandas as pd
 color_keys = {
     "BonusMax": "red",
     "NegRLVisits": "blue",
+    "UCBZero": "blue",
     "Random": "green"
 }
 
@@ -16,11 +17,13 @@ label_keys = {
     "BonusMax": "BonusMaxRL",
     "NegRLVisits": "NegRLVisits",
     "Random": "Random",
+    "UCBZero": "UCBZero",
 }
 
 style_keys = {
     "BonusMax": "dotted",
     "NegRLVisits": "dashed",
+    "UCBZero": "dashed",
     "Random": "dashdot"
 }
 
