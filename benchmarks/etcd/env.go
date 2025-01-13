@@ -6,6 +6,7 @@ import (
 	"io"
 	"log"
 	"math/rand"
+	"path"
 	"strconv"
 
 	"github.com/zeu5/dist-rl-testing/core"
@@ -20,6 +21,9 @@ type RaftEnvironmentConfig struct {
 	ElectionTick  int
 	HeartbeatTick int
 	Requests      int
+
+	TraceRecordPath string
+	RecordTraces    bool
 }
 
 // Wrapper around raft nodes, storage and in transit messages to allow for implementing a partition interface
@@ -30,6 +34,8 @@ type RaftPartitionEnv struct {
 	messages map[string]pb.Message
 	curState *RaftState
 	rand     *rand.Rand
+
+	curEventTrace []interface{}
 }
 
 var _ core.PEnvironment = &RaftPartitionEnv{}
@@ -42,6 +48,8 @@ func NewPartitionEnvironment(config RaftEnvironmentConfig) *RaftPartitionEnv {
 		storages: make(map[uint64]*raft.MemoryStorage),
 		messages: make(map[string]pb.Message),
 		rand:     rand.New(rand.NewSource(0)),
+
+		curEventTrace: make([]interface{}, 0),
 	}
 }
 
@@ -111,6 +119,57 @@ func (r *RaftPartitionEnv) makeNodes() {
 	r.curState = initState
 }
 
+func (p *RaftPartitionEnv) recordEventsInTransition(id int, oldS, newS raft.Status) {
+	old := oldS.RaftState
+	new := newS.RaftState
+	oldTerm := oldS.Term
+	newTerm := newS.Term
+	if old != new && new == raft.StateLeader {
+		p.curEventTrace = append(p.curEventTrace, map[string]interface{}{
+			"name": "BecomeLeader",
+			"params": map[string]interface{}{
+				"node": id,
+			},
+		})
+		p.curEventTrace = append(p.curEventTrace, map[string]interface{}{
+			"name": "ClientRequest",
+			"params": map[string]interface{}{
+				"request": 0,
+				"leader":  id,
+			},
+		})
+	} else if (old != new && new == raft.StateCandidate) || (oldTerm < newTerm && old == new && new == raft.StateCandidate) {
+		p.curEventTrace = append(p.curEventTrace, map[string]interface{}{
+			"name": "Timeout",
+			"params": map[string]interface{}{
+				"node": id,
+			},
+		})
+	}
+}
+
+func (p *RaftPartitionEnv) recordSendAndReceiveEvents(message pb.Message, send bool) {
+	name := "DeliverMessage"
+	if send {
+		name = "SendMessage"
+	}
+	p.curEventTrace = append(p.curEventTrace, map[string]interface{}{
+		"name": name,
+		"params": map[string]interface{}{
+			"type":     message.Type.String(),
+			"term":     message.Term,
+			"from":     message.From,
+			"to":       message.To,
+			"log_term": message.LogTerm,
+			"entries":  message.Entries,
+			"index":    message.Index,
+			"commit":   message.Commit,
+			"vote":     message.Vote,
+			"reject":   message.Reject,
+		},
+	})
+}
+
 // deliver the specified message in the system and returns the subsequent state, no tick pass?
 func (p *RaftPartitionEnv) deliverMessage(m core.Message) core.PState {
 	rm := m.(RaftMessageWrapper)
@@ -120,6 +179,9 @@ func (p *RaftPartitionEnv) deliverMessage(m core.Message) core.PState {
 		node.Step(rm.Message)
 	}
 	delete(p.messages, msgK)
+	if p.config.RecordTraces {
+		p.recordSendAndReceiveEvents(rm.Message, false)
+	}
 
 	newState := p.curState.Copy()
 	for id, node := range p.nodes {
@@ -132,15 +194,29 @@ func (p *RaftPartitionEnv) deliverMessage(m core.Message) core.PState {
 			if len(ready.Entries) > 0 {
 				p.storages[id].Append(ready.Entries)
 			}
+			if p.config.RecordTraces && len(ready.CommittedEntries) > 0 {
+				p.curEventTrace = append(p.curEventTrace, map[string]interface{}{
+					"name": "AdvanceCommitIndex",
+					"params": map[string]interface{}{
+						"i": int(id),
+					},
+				})
+			}
 			for _, message := range ready.Messages {
 				msgK := util.JsonHash(message)
 				p.messages[msgK] = message
+				if p.config.RecordTraces {
+					p.recordSendAndReceiveEvents(message, true)
+				}
 			}
 			node.Advance(ready)
 		}
 		// add status
 		status := node.Status()
 		newState.NodeStates[id] = status
+		if p.config.RecordTraces {
+			p.recordEventsInTransition(int(id), p.curState.NodeStates[id], status)
+		}
 
 		// add log
 		newState.Logs[id] = make([]pb.Entry, 0)
@@ -168,8 +244,21 @@ func (p *RaftPartitionEnv) dropMessage(m core.Message) core.PState {
 	return newState
 }
 
-func (r *RaftPartitionEnv) Reset() (core.PState, error) {
+func (r *RaftPartitionEnv) Reset(eCtx *core.EpisodeContext) (core.PState, error) {
 	r.messages = make(map[string]pb.Message)
+	if r.config.RecordTraces && len(r.curEventTrace) > 0 {
+
+		traceRecordPath := path.Join(r.config.TraceRecordPath, strconv.Itoa(eCtx.Run))
+		util.EnsureDir(traceRecordPath)
+		util.SaveJson(
+			path.Join(
+				traceRecordPath,
+				fmt.Sprintf("trace_%d.json", eCtx.Episode),
+			),
+			r.curEventTrace,
+		)
+	}
+	r.curEventTrace = make([]interface{}, 0)
 	r.makeNodes()
 	return r.curState, nil
 }
@@ -188,9 +277,20 @@ func (p *RaftPartitionEnv) Tick(epCtx *core.StepContext) (core.PState, error) {
 			if len(ready.Entries) > 0 {
 				p.storages[id].Append(ready.Entries)
 			}
+			if p.config.RecordTraces && len(ready.CommittedEntries) > 0 {
+				p.curEventTrace = append(p.curEventTrace, map[string]interface{}{
+					"name": "AdvanceCommitIndex",
+					"params": map[string]interface{}{
+						"i": int(id),
+					},
+				})
+			}
 			for _, message := range ready.Messages {
 				msgK := util.JsonHash(message)
 				p.messages[msgK] = message
+				if p.config.RecordTraces {
+					p.recordSendAndReceiveEvents(message, true)
+				}
 			}
 			node.Advance(ready)
 		}
@@ -198,6 +298,9 @@ func (p *RaftPartitionEnv) Tick(epCtx *core.StepContext) (core.PState, error) {
 		// add status
 		status := node.Status()
 		newState.NodeStates[id] = status
+		if p.config.RecordTraces {
+			p.recordEventsInTransition(int(id), p.curState.NodeStates[id], status)
+		}
 
 		// add log
 		newState.Logs[id] = make([]pb.Entry, 0)
@@ -254,6 +357,16 @@ func (p *RaftPartitionEnv) ReceiveRequest(req core.Request, epCtx *core.StepCont
 		message.To = leader
 		p.nodes[leader].Step((message))
 		remainingRequests = p.curState.PendingRequests[1:]
+		if p.config.RecordTraces {
+			request, _ := strconv.Atoi(string(message.Entries[0].Data))
+			p.curEventTrace = append(p.curEventTrace, map[string]interface{}{
+				"name": "ClientRequest",
+				"params": map[string]interface{}{
+					"request": request,
+					"leader":  leader,
+				},
+			})
+		}
 	}
 	for _, r := range remainingRequests {
 		newState.PendingRequests = append(newState.PendingRequests, copyMessage(r))
@@ -263,6 +376,14 @@ func (p *RaftPartitionEnv) ReceiveRequest(req core.Request, epCtx *core.StepCont
 }
 
 func (r *RaftPartitionEnv) StopNode(nodeID int, epCtx *core.StepContext) (core.PState, error) {
+	if r.config.RecordTraces {
+		r.curEventTrace = append(r.curEventTrace, map[string]interface{}{
+			"name": "Remove",
+			"params": map[string]interface{}{
+				"i": nodeID,
+			},
+		})
+	}
 	delete(r.nodes, uint64(nodeID))
 	return r.curState, nil
 }
@@ -271,7 +392,15 @@ func (r *RaftPartitionEnv) StartNode(nodeID int, epCtx *core.StepContext) (core.
 	node := uint64(nodeID)
 	_, exists := r.nodes[node]
 	if exists {
-		return nil, fmt.Errorf("node %d does not exist", node)
+		return nil, fmt.Errorf("node %d already started", node)
+	}
+	if r.config.RecordTraces {
+		r.curEventTrace = append(r.curEventTrace, map[string]interface{}{
+			"name": "Add",
+			"params": map[string]interface{}{
+				"i": nodeID,
+			},
+		})
 	}
 	r.nodes[node], _ = raft.NewRawNode(&raft.Config{
 		ID:                        node,

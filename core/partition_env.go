@@ -32,7 +32,7 @@ type PState interface {
 }
 
 type PEnvironment interface {
-	Reset() (PState, error)
+	Reset(*EpisodeContext) (PState, error)
 	Tick(*StepContext) (PState, error)
 	DeliverMessages([]Message, *StepContext) (PState, error)
 	DropMessages([]Message, *StepContext) (PState, error)
@@ -495,8 +495,8 @@ func (c *ChangePartitionAction) Hash() string {
 	return out
 }
 
-func (e *partitionEnvironment) Reset() (State, error) {
-	pState, err := e.pEnv.Reset()
+func (e *partitionEnvironment) Reset(eCtx *EpisodeContext) (State, error) {
+	pState, err := e.pEnv.Reset(eCtx)
 	if err != nil {
 		return nil, err
 	}

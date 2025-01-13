@@ -29,3 +29,9 @@ func SaveJson(path string, data interface{}) error {
 	_, err = file.Write(bs)
 	return err
 }
+
+func EnsureDir(path string) {
+	if _, err := os.Stat(path); os.IsNotExist(err) {
+		os.MkdirAll(path, 0755)
+	}
+}

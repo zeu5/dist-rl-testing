@@ -11,8 +11,9 @@ type Flags struct {
 	PartitionFlags
 	SavePath string
 	RunFlags
-	Parallelism int
-	Debug       bool
+	Parallelism       int
+	Debug             bool
+	RecordEventTraces bool
 }
 
 type PartitionFlags struct {
@@ -54,8 +55,9 @@ func DefaultFlags() *Flags {
 			MaxConsecutiveTimeouts: 20,
 			EpisodeTimeout:         10 * time.Second,
 		},
-		Parallelism: 10,
-		Debug:       false,
+		Parallelism:       10,
+		Debug:             false,
+		RecordEventTraces: false,
 	}
 }
 

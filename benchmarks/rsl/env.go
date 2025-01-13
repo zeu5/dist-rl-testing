@@ -112,7 +112,7 @@ func NewRLSPartitionEnv(c RSLEnvConfig) *RSLPartitionEnv {
 }
 
 // Reset creates new nodes and clears all messages
-func (r *RSLPartitionEnv) Reset() (core.PState, error) {
+func (r *RSLPartitionEnv) Reset(_ *core.EpisodeContext) (core.PState, error) {
 	peers := make([]uint64, r.config.Nodes)
 	for i := 0; i < r.config.Nodes; i++ {
 		peers[i] = uint64(i + 1)

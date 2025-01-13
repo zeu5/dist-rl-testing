@@ -28,6 +28,7 @@ var (
 	episodeTimeout         int
 	parallelism            int
 	debug                  bool
+	recordEventTraces      bool
 )
 
 func AddFlags(cmd *cobra.Command) {
@@ -48,6 +49,7 @@ func AddFlags(cmd *cobra.Command) {
 	cmd.PersistentFlags().IntVar(&episodeTimeout, "episode-timeout", int(flags.EpisodeTimeout.Seconds()), "Episode timeout")
 	cmd.PersistentFlags().IntVar(&parallelism, "parallelism", flags.Parallelism, "Number of parallel runs")
 	cmd.PersistentFlags().BoolVar(&debug, "debug", flags.Debug, "Debug mode")
+	cmd.PersistentFlags().BoolVar(&recordEventTraces, "record-event-traces", flags.RecordEventTraces, "Record event traces")
 }
 
 func UpdateFlags() {
@@ -68,4 +70,5 @@ func UpdateFlags() {
 	flags.EpisodeTimeout = time.Duration(episodeTimeout) * time.Second
 	flags.Parallelism = parallelism
 	flags.Debug = debug
+	flags.RecordEventTraces = recordEventTraces
 }

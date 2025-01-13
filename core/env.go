@@ -5,7 +5,7 @@ import "context"
 // A generic environment explored by RL
 type Environment interface {
 	// Reset the state of the environment
-	Reset() (State, error)
+	Reset(*EpisodeContext) (State, error)
 	// Step through with a specified action and return the resulting state
 	// Error if the transition is unsuccessful or disallowed
 	Step(Action, *StepContext) (State, error)

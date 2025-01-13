@@ -77,7 +77,7 @@ EpisodeLoop:
 				}
 			}()
 
-			state, err := e.Environment.Reset()
+			state, err := e.Environment.Reset(eCtx)
 			if err != nil {
 				eCtx.Error(fmt.Errorf("error resetting the env: %s", err))
 				return

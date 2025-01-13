@@ -2,6 +2,8 @@ package etcd
 
 import (
 	"errors"
+	"os"
+	"path"
 
 	"github.com/zeu5/dist-rl-testing/analysis"
 	"github.com/zeu5/dist-rl-testing/benchmarks/common"
@@ -22,11 +24,18 @@ func PreparePureCoverageComparison(flags *common.Flags) *core.ParallelComparison
 		ColorBoundedLog(6),
 	}
 
+	traceRecordPath := path.Join(flags.SavePath, "event-traces")
+	if flags.RecordEventTraces {
+		os.MkdirAll(traceRecordPath, 0755)
+	}
+
 	raftEnvConstructor := NewPartitionEnvironmentConstructor(RaftEnvironmentConfig{
-		NumNodes:      flags.NumNodes,
-		ElectionTick:  16,
-		HeartbeatTick: 4,
-		Requests:      flags.Requests,
+		NumNodes:        flags.NumNodes,
+		ElectionTick:    16,
+		HeartbeatTick:   4,
+		Requests:        flags.Requests,
+		TraceRecordPath: traceRecordPath,
+		RecordTraces:    flags.RecordEventTraces,
 	})
 	painter := core.NewComposedPainter(colors...).Painter()
 	partitionEnvConstructor := (&core.PEnvironmentConfig{
@@ -98,10 +107,12 @@ func PrepareHierarchyComparison(flags *common.Flags, hSet string) (*core.Paralle
 	}
 
 	raftEnvConstructor := NewPartitionEnvironmentConstructor(RaftEnvironmentConfig{
-		NumNodes:      flags.NumNodes,
-		ElectionTick:  9,
-		HeartbeatTick: 3,
-		Requests:      flags.Requests,
+		NumNodes:        flags.NumNodes,
+		ElectionTick:    9,
+		HeartbeatTick:   3,
+		Requests:        flags.Requests,
+		RecordTraces:    flags.RecordEventTraces,
+		TraceRecordPath: path.Join(flags.SavePath, "event-traces"),
 	})
 	painter := core.NewComposedPainter(colors...).Painter()
 	partitionEnvConstructor := (&core.PEnvironmentConfig{

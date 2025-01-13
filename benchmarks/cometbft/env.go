@@ -129,7 +129,7 @@ func (r *CometEnv) Cleanup() {
 	}
 }
 
-func (r *CometEnv) Reset() (core.PState, error) {
+func (r *CometEnv) Reset(_ *core.EpisodeContext) (core.PState, error) {
 	if r.cluster != nil {
 		if err := r.cluster.Destroy(); err != nil {
 			return nil, util.NewLogError(err, r.cluster.GetLogs())

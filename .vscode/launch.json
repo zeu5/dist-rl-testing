@@ -15,6 +15,21 @@
                 "cov"
             ]
         },
+
+        {
+            "name": "Run etcd coverage With event traces",
+            "type": "go",
+            "request": "launch",
+            "mode": "auto",
+            "program": "${workspaceFolder}",
+            "args": [
+                "etcd",
+                "cov",
+                "--episodes", "10",
+                "--record-event-traces"
+            ]
+        },
+        
         {
             "name": "Run etcd hierarchy",
             "type": "go",
