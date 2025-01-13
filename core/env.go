@@ -37,6 +37,8 @@ type EpisodeContext struct {
 	Horizon int
 	// Run number
 	Run int
+	// Name of the experiment we are running
+	Experiment string
 	// Start time step of the episode
 	StartTimeStep int
 

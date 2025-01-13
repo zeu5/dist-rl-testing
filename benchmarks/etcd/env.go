@@ -248,7 +248,7 @@ func (r *RaftPartitionEnv) Reset(eCtx *core.EpisodeContext) (core.PState, error)
 	r.messages = make(map[string]pb.Message)
 	if r.config.RecordTraces && len(r.curEventTrace) > 0 {
 
-		traceRecordPath := path.Join(r.config.TraceRecordPath, strconv.Itoa(eCtx.Run))
+		traceRecordPath := path.Join(r.config.TraceRecordPath, strconv.Itoa(eCtx.Run), eCtx.Experiment)
 		util.EnsureDir(traceRecordPath)
 		util.SaveJson(
 			path.Join(

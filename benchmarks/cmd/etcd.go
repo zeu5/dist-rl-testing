@@ -19,7 +19,42 @@ func EtcdCommand() *cobra.Command {
 	cmd.AddCommand(
 		etcdPureCovCommand(),
 		etcdHierarchyCommand(),
+		etcdPureCovRLCommand(),
 	)
+
+	return cmd
+}
+
+func etcdPureCovRLCommand() *cobra.Command {
+	cmd := &cobra.Command{
+		Use:   "cov-rl",
+		Short: "Run etcd benchmark for purecov of only BonusMaxRL",
+		Run: func(cmd *cobra.Command, args []string) {
+			sigCh := make(chan os.Signal, 1)
+			signal.Notify(sigCh, os.Interrupt) // channel for interrupts from os
+
+			doneCh := make(chan struct{}) // channel for done signal from application
+
+			ctx, cancel := context.WithCancel(context.Background())
+			go func() { // start a go-routine
+				select { // can wait on multiple channels
+				case <-sigCh:
+				case <-doneCh:
+				}
+				cancel()
+			}()
+
+			cmp := etcd.PreparePureCoveageRL(flags)
+			cmp.Run(ctx, flags.NumRuns, &core.RunConfig{
+				Episodes:                     flags.Episodes,
+				Horizon:                      flags.Horizon,
+				ThresholdConsecutiveErrors:   flags.MaxConsecutiveErrors,
+				ThresholdConsecutiveTimeouts: flags.MaxConsecutiveTimeouts,
+				EpisodeTimeout:               flags.EpisodeTimeout,
+			}, flags.Parallelism)
+			close(doneCh)
+		},
+	}
 
 	return cmd
 }
