@@ -2,6 +2,9 @@
 
 RL testing for distributed systems. This repository contains an implementation of a new RL based exploration algorithm and benchmarks (etcd and RSL) to evaluate the new exploration algorithm.
 
+- etcd: the popular key value store
+- RSL: the algorithm used inside Azure storage
+
 ## Directory structure
 
 - `benchmarks` - contains the code to instantiate and run the different algorithms based on the command line parameters provided.
