@@ -16,6 +16,7 @@ var (
 )
 
 type experimentRunContext struct {
+	name      string
 	run       int
 	ctx       context.Context
 	cancel    context.CancelFunc
@@ -66,6 +67,7 @@ EpisodeLoop:
 		))
 		timeoutCtx, timeoutCancel := context.WithTimeout(ctx.ctx, ctx.EpisodeTimeout)
 		eCtx := NewEpisodeContext(timeoutCtx)
+		eCtx.Experiment = ctx.name
 		eCtx.Run = ctx.run
 		eCtx.Episode = episode
 		eCtx.StartTimeStep = result.TotalTimeSteps
@@ -190,6 +192,7 @@ func (c *Comparison) Run(ctx context.Context, runs int, rConfig *RunConfig) {
 			default:
 			}
 			ctx := &experimentRunContext{
+				name:      e.Name,
 				run:       run,
 				ctx:       ctx,
 				analyzers: make(map[string]Analyzer),
@@ -290,6 +293,7 @@ func (w *parallelWorker) runWork(ctx context.Context, work *parallelWork) *paral
 		Environment: work.experiment.Environment.NewEnvironment(eCtx, w.id),
 		Policy:      work.experiment.Policy.NewPolicy(),
 	}
+	eRunCtx.name = work.experiment.Name
 
 	// Run the experiment
 	result := exp.run(eRunCtx)
