@@ -74,11 +74,11 @@ func (r *RaftPartitionEnvConstructor) NewPEnvironment(_ context.Context, _ int) 
 }
 
 func (r *RaftPartitionEnv) makeNodes() {
-	peers := make([]raft.Peer, r.config.NumNodes)
 	for i := 0; i < r.config.NumNodes; i++ {
-		peers[i] = raft.Peer{ID: uint64(i + 1)}
-	}
-	for i := 0; i < r.config.NumNodes; i++ {
+		confChanges := make([]pb.ConfChangeV2, r.config.NumNodes)
+		for i := 0; i < r.config.NumNodes; i++ {
+			confChanges[i] = pb.ConfChange{NodeID: uint64(i + 1), Type: pb.ConfChangeAddNode}.AsV2()
+		}
 		storage := raft.NewMemoryStorage()
 		nodeID := uint64(i + 1)
 		r.storages[nodeID] = storage
@@ -93,7 +93,9 @@ func (r *RaftPartitionEnv) makeNodes() {
 			Logger:                    &raft.DefaultLogger{Logger: log.New(io.Discard, "", 0)},
 			CheckQuorum:               true,
 		})
-		r.nodes[nodeID].Bootstrap(peers)
+		for _, cc := range confChanges {
+			r.nodes[nodeID].ApplyConfChange(cc)
+		}
 	}
 	initState := &RaftState{
 		NodeStates:      make(map[uint64]raft.Status),
