@@ -82,7 +82,7 @@ func (r *RaftPartitionEnv) makeNodes() {
 		storage := raft.NewMemoryStorage()
 		nodeID := uint64(i + 1)
 		r.storages[nodeID] = storage
-		r.nodes[nodeID], _ = raft.NewRawNode(&raft.Config{
+		node, err := raft.NewRawNode(&raft.Config{
 			ID:                        nodeID,
 			ElectionTick:              r.config.ElectionTick,
 			HeartbeatTick:             r.config.HeartbeatTick,
@@ -93,9 +93,13 @@ func (r *RaftPartitionEnv) makeNodes() {
 			Logger:                    &raft.DefaultLogger{Logger: log.New(io.Discard, "", 0)},
 			CheckQuorum:               true,
 		})
-		for _, cc := range confChanges {
-			r.nodes[nodeID].ApplyConfChange(cc)
+		if err != nil {
+			panic(fmt.Sprintf("Cannot create node: %v", err))
 		}
+		for _, cc := range confChanges {
+			node.ApplyConfChange(cc)
+		}
+		r.nodes[nodeID] = node
 	}
 	initState := &RaftState{
 		NodeStates:      make(map[uint64]raft.Status),
@@ -224,13 +228,14 @@ func (p *RaftPartitionEnv) deliverMessage(m core.Message) core.PState {
 		newState.Logs[id] = make([]pb.Entry, 0)
 		storage := p.storages[id]
 		lastIndex, _ := storage.LastIndex()
-		ents, err := storage.Entries(1, lastIndex+1, 1024*1024) // hardcoded value from link_env.go
-		if err == nil {
-			newState.Logs[id] = copyLogList(ents)
-		} else {
-			panic("error in reading entries in the log")
+		if lastIndex > 0 {
+			ents, err := storage.Entries(1, lastIndex+1, 1024*1024) // hardcoded value from link_env.go
+			if err == nil {
+				newState.Logs[id] = copyLogList(ents)
+			} else {
+				panic(fmt.Sprintf("error in reading entries in the log: %v", err))
+			}
 		}
-
 	}
 	newState.MessageMap = copyMessageMap(p.messages)
 	p.curState = newState
@@ -309,14 +314,15 @@ func (p *RaftPartitionEnv) Tick(epCtx *core.StepContext) (core.PState, error) {
 
 		storage := p.storages[id]
 		lastIndex, _ := storage.LastIndex()
-		ents, err := storage.Entries(1, lastIndex+1, 1024*1024) // hardcoded value from link_env.go
-		if err == nil {
-			// TODO: copy logs instead of assigning directly
-			newState.Logs[id] = copyLogList(ents)
-		} else {
-			panic("error in reading entries in the log")
+		if lastIndex > 0 {
+			ents, err := storage.Entries(1, lastIndex+1, 1024*1024) // hardcoded value from link_env.go
+			if err == nil {
+				// TODO: copy logs instead of assigning directly
+				newState.Logs[id] = copyLogList(ents)
+			} else {
+				panic(fmt.Sprintf("error in reading entries in the log: %v", err))
+			}
 		}
-
 	}
 	newState.MessageMap = copyMessageMap(p.messages)
 	newState.PendingRequests = copyMessagesList(p.curState.PendingRequests)
