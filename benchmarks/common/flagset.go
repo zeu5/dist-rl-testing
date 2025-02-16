@@ -39,7 +39,7 @@ func DefaultFlags() *Flags {
 	return &Flags{
 		PartitionFlags: PartitionFlags{
 			NumNodes:              3,
-			Requests:              10,
+			Requests:              5,
 			TicksBetweenPartition: 4,
 			StaySameUpto:          5,
 			WithCrashes:           true,
