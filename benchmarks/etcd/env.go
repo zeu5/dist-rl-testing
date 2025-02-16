@@ -99,6 +99,7 @@ func (r *RaftPartitionEnv) makeNodes() {
 	}
 	initState := &RaftState{
 		NodeStates:      make(map[uint64]raft.Status),
+		SnapshotIndices: make(map[uint64]uint64),
 		MessageMap:      copyMessageMap(r.messages),
 		Logs:            make(map[uint64][]pb.Entry),
 		PendingRequests: make([]pb.Message, r.config.Requests),
@@ -117,6 +118,7 @@ func (r *RaftPartitionEnv) makeNodes() {
 	for id, node := range r.nodes {
 		initState.NodeStates[id] = node.Status()
 		initState.Logs[id] = make([]pb.Entry, 0)
+
 	}
 	r.curState = initState
 }
@@ -231,6 +233,11 @@ func (p *RaftPartitionEnv) deliverMessage(m core.Message) core.PState {
 			panic("error in reading entries in the log")
 		}
 
+		// add snapshot index
+		snap, err := storage.Snapshot()
+		if err == nil {
+			newState.SnapshotIndices[id] = snap.Metadata.Index
+		}
 	}
 	newState.MessageMap = copyMessageMap(p.messages)
 	p.curState = newState
@@ -317,6 +324,11 @@ func (p *RaftPartitionEnv) Tick(epCtx *core.StepContext) (core.PState, error) {
 			panic("error in reading entries in the log")
 		}
 
+		// add snapshot index
+		snap, err := storage.Snapshot()
+		if err == nil {
+			newState.SnapshotIndices[id] = snap.Metadata.Index
+		}
 	}
 	newState.MessageMap = copyMessageMap(p.messages)
 	newState.PendingRequests = copyMessagesList(p.curState.PendingRequests)

@@ -96,6 +96,7 @@ func PreparePureCoveageRL(flags *common.Flags) *core.ParallelComparison {
 		ColorIndex(),
 		ColorBoundedTerm(6),
 		ColorBoundedLog(6),
+		ColorSnapshotIndex(),
 	}
 
 	traceRecordPath := path.Join(flags.SavePath, "event-traces")

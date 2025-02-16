@@ -73,14 +73,7 @@ func ColorLeader() core.KVPainter {
 // return the snapshot index of a node
 func ColorSnapshotIndex() core.KVPainter {
 	return wrapColor(func(s RaftNodeState) (string, interface{}) {
-		return "snapshotIndex", s.Snapshot.Index
-	})
-}
-
-// return the snapshot index of a node
-func ColorSnapshotTerm() core.KVPainter {
-	return wrapColor(func(s RaftNodeState) (string, interface{}) {
-		return "snapshotTerm", s.Snapshot.Term
+		return "snapshotIndex", s.SnapshotIndex
 	})
 }
 

@@ -70,6 +70,14 @@ func copyLogList(log []pb.Entry) []pb.Entry {
 	return newLog
 }
 
+func copySnapshotIndexMap(m map[uint64]uint64) map[uint64]uint64 {
+	c := make(map[uint64]uint64)
+	for k, v := range m {
+		c[k] = v
+	}
+	return c
+}
+
 func copyNodeStateMap(m map[uint64]raft.Status) map[uint64]raft.Status {
 	c := make(map[uint64]raft.Status)
 	for k, s := range m {

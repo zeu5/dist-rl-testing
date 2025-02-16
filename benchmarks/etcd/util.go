@@ -84,7 +84,8 @@ var _ core.Message = RaftMessageWrapper{}
 // State of the Raft environment
 type RaftState struct {
 	// States of each node (obtained from the raft implementation)
-	NodeStates map[uint64]raft.Status
+	NodeStates      map[uint64]raft.Status
+	SnapshotIndices map[uint64]uint64
 	// The messages in transit
 	MessageMap map[string]pb.Message
 	Logs       map[uint64][]pb.Entry
@@ -97,6 +98,7 @@ type RaftState struct {
 func (r *RaftState) Copy() *RaftState {
 	newState := &RaftState{
 		NodeStates:      copyNodeStateMap(r.NodeStates),
+		SnapshotIndices: copySnapshotIndexMap(r.SnapshotIndices),
 		PendingRequests: copyMessagesList(r.PendingRequests),
 		Logs:            make(map[uint64][]pb.Entry),
 		MessageMap:      copyMessageMap(r.MessageMap),
@@ -114,17 +116,18 @@ var _ core.PState = &RaftState{}
 
 // State of a node in the Raft environment
 type RaftNodeState struct {
-	State    raft.Status
-	Log      []pb.Entry
-	Snapshot pb.SnapshotMetadata
+	State         raft.Status
+	Log           []pb.Entry
+	SnapshotIndex uint64
 }
 
 // Implements the PartitionedSystemState
 func (r *RaftState) NodeState(node int) core.NState {
 	nID := uint64(node)
 	return RaftNodeState{
-		State: r.NodeStates[nID],
-		Log:   r.Logs[nID],
+		State:         r.NodeStates[nID],
+		Log:           r.Logs[nID],
+		SnapshotIndex: r.SnapshotIndices[nID],
 	}
 }
 
